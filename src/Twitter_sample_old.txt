@@ -1,0 +1,4260 @@
+/*
+ * To change this template, choose Tools | Templates
+ * and open the template in the editor.
+ */
+package twitter_sample;
+
+//import weiboprocess.ConnectionPool;
+import com.jcraft.jsch.JSch;
+import com.jcraft.jsch.Session;
+
+import java.io.*;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
+import java.sql.*;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+//import org.apache.commons.logging.Log;
+//import org.apache.commons.logging.LogFactory;
+//import org.apache.log4j.PropertyConfigurator;
+//import com.jmatio.io.MatFileReader;
+//import com.jmatio.types.MLArray;
+//import com.jmatio.types.MLDouble;
+import test.coveragetest;
+/**
+ *
+ * @author zhangyubao
+ */
+public class Twitter_sample {
+
+    /**
+     * @param args the command line arguments
+     */
+    
+    private static ConnectionPool conpool=null;
+    private static LevenshteinDistance ldistance = null;
+    private static ByteBuffer bb;  //
+    private static ByteBuffer bb_search;  //
+    private static ScheduledExecutorService SampleThreadPool = null;
+    private static ScheduledExecutorService SearchThreadPool = null;
+    
+    
+    public static void main(String[] args) throws SQLException, FileNotFoundException, IOException {
+        // TODO code application logic here
+        
+        //Session session = GetDBSSH();
+        
+       //int lport = 2026; //2022: search_ht, 2023:sample_dynamics, 2024: three_dyn, 2025: mytwitter1
+       //GetDBSSH(lport);
+//        
+        
+        int lport = 3306;
+        String dbuserName = "root";
+        String dbpassword = "";
+        String url = "jdbc:mysql://127.0.0.1:"+lport+"/twitter1";
+        String driverName="com.mysql.jdbc.Driver";
+        
+       
+        try{
+            conpool = new ConnectionPool(driverName,url,dbuserName,dbpassword);
+            conpool.createPool();
+        
+        }catch(Exception e)
+        {
+            System.out.println("Failed to create conn pool!!!!!");
+        }
+        
+        ///////////////////////////////
+        
+        SampleThreadPool=Executors.newScheduledThreadPool(1);
+        
+        //search2DB search = new search2DB();
+//        int Sampletread=1;
+//        for(int i = 0;i<Sampletread;i++)
+//        {
+//            SampleThreadPool.schedule(Sample2DBRun, i+1, TimeUnit.MINUTES);
+//        }
+//        
+//        SearchThreadPool=Executors.newScheduledThreadPool(2);
+//        
+//        //search2DB search = new search2DB();
+//        int Searchtread=2;
+//        for(int i = 0;i<Searchtread;i++)
+//        {
+//            SearchThreadPool.schedule(Search2DBRun, i+1, TimeUnit.MINUTES);
+//        }
+
+
+        
+        /////////////////////////////////////dynamics//////////////////////////////////////
+        //getNetRel();
+        //inferht();  //calculate the search dynamics info from twitter1 (for sample topics)
+        //caltrend();  //calculate the 
+        //calsampledynamics();   //calculate the sample dynamics info from twitter1 (for topics > 5)
+        //movesharpfromtrend();
+        //tmpsearchdyn(); //calculate the sample dynamics info from twitter_tmp (for a certain topic)
+        
+        
+        /////////////////////////////////////past functions//////////////////////////////////////
+            //session.disconnect();
+        //trend_time_array();
+        //NormalUrlHashtag();
+        //gettbtrendpos();
+        //getQuerySearch();
+        //queryUrlMention();
+        //sample_time_array();
+        //getMentionNetwork();
+        //getMatrixfromDB();
+        
+        //testUrls();
+        //getuserspaminfo();
+        //getpotentialscale();
+        //calreciprocity();
+        //writeresponsetimesamples();
+        //extractcascade();
+        //checkfollowing();
+        //traceconscutivetrend();
+        //measuretrendtime();
+        //getSampleThread();
+        //uniteSearchdynamics();
+        //outputdynamics();
+        //DBoperate();
+        //outputdata();
+
+        //outputTweetforTMT();
+        //processtxtfile();
+        coveragetest ct=new coveragetest();
+        ct.test_x();
+        return;
+    }
+
+    public static void processtxtfile()
+    {
+        //substitute the node name to node number of network
+        String file1="/Users/zhangyubao/Documents/workspace/snap/favornet_rootnode1.txt";
+        String fileout="/Users/zhangyubao/Documents/workspace/snap/favornet_rootnode1_node.txt";
+        String fileout1="/Users/zhangyubao/Documents/workspace/Networkx_HITS/favornet_rootnode1_num.txt";
+
+        List<String> nodename=new ArrayList<String>();
+
+        String content="";
+        try {
+            int count=0;
+            File file = new File(file1);
+            //File fileout=new File(file2);
+
+            FileReader fr = new FileReader(file);
+            //FileInputStream in = new FileInputStream(file);
+            BufferedReader rin = new BufferedReader(fr);
+
+            StringBuilder data = new StringBuilder(150);
+            String line;
+            while ((line = rin.readLine()) != null)
+            {
+                System.out.println(count++);
+                String[] strarray=line.split("\t");
+                String tmp="";
+                if(!nodename.contains(strarray[0]))
+                {
+                    nodename.add(strarray[0]);
+                    File_Write(fileout,nodename.indexOf(strarray[0])+" "+strarray[0]+"\n");
+                }
+                tmp=tmp+nodename.indexOf(strarray[0]);tmp=tmp+" ";
+                if(!nodename.contains(strarray[1]))
+                {
+                    nodename.add(strarray[1]);
+                    File_Write(fileout,nodename.indexOf(strarray[1])+" "+strarray[1]+"\n");
+                }
+                tmp=tmp+nodename.indexOf(strarray[1]);tmp=tmp+"\n";
+                File_Write(fileout1,tmp);
+            }
+            rin.close();
+            fr.close();
+
+        } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+        }
+
+        //return content;
+    }
+
+   public static void outputTweetforTMT() throws SQLException
+   {
+
+       Connection conn=conpool.getConnection();
+       Statement stat_ht=conn.createStatement();
+       Statement stat_name=conn.createStatement();
+
+       String sql_name="select distinct username from n_favorite_network_view;";
+       ResultSet rs_name=stat_name.executeQuery(sql_name);
+
+       while(rs_name.next())
+       {
+
+           //String dirname="/Users/zhangyubao/Documents/twitter_favorite/tmt_data/test/user"+rs_name.getRow();
+           String dirname="./tmtuser/user"+rs_name.getRow();
+           File newdir=new File(dirname);
+           try{
+               newdir.mkdir();
+           }catch(Exception e)
+           {
+                System.out.println("[Error] creating dir...");
+           }
+           String username=rs_name.getString(1);
+           System.out.println(rs_name.getRow()+" "+username);
+
+           String path=dirname+"/test.csv";
+           File ftmp=new File(path);
+           if(ftmp.exists())
+           {
+               ftmp.delete();
+           }
+
+
+           int count=1;
+
+           Statement stat1=conn.createStatement();
+
+//           String qtime = "select min(pubtime),max(pubtime) from n_favorite_content where username='" + username + "'";
+//           ResultSet rstime = stat1.executeQuery(qtime);
+//           rstime.next();
+//           Timestamp tmin = rstime.getTimestamp(1);
+//           Timestamp tmax = rstime.getTimestamp(2);
+//           rstime.close();
+//           long lmintime = tmin.getTime();
+//           double dmintime = (double) lmintime;
+//           long lmaxtime = tmax.getTime();
+//           double dmaxtime = (double) lmaxtime;
+//           long duration = 7 * 24 * 3600 * 1000;
+//           double ddura = (double) duration;
+//
+//           int duranum = (int) Math.ceil((dmaxtime - dmintime) / ddura);
+//           String[] timetweet = new String[duranum];
+
+           String q1 = "select tweetid,count(tweetid),tweetcontent,username from n_favorite_content where favoritedusername='" + username + "';";
+           ResultSet rs1 = stat1.executeQuery(q1);
+
+
+           while (rs1.next()) {
+               //String username=rs1.getString(1);
+               String tweetid = rs1.getString(1);
+               int tweetcnt=rs1.getInt(2);
+               if(tweetcnt<100)
+               {
+                   System.out.println("Having less than 100 tweets....");
+                   continue;
+               }
+               String tweetcontent = rs1.getString(3);
+
+               String un=rs1.getString(4);
+               //Timestamp pubtime = rs1.getTimestamp(3);
+                String htsql="select hashtag from n_favorite_sampletweets where tweetid='"+tweetid+"';";
+               ResultSet rs0=stat_ht.executeQuery(htsql);
+               boolean val=rs0.next();
+               String ht="";
+               if(val==true) {
+                   ht = rs0.getString(1);
+               }else{
+                   //System.out.println("HT doesnot exist!");
+               }
+               rs0.close();
+
+//               long ltime = pubtime.getTime();
+//               int index = (int) Math.floor((ltime - lmintime) / ddura);
+               tweetcontent+=" "+getExpandTweets(tweetid,ht);
+
+               String s = tweetcontent.replaceAll("[^A-Za-z0-9@\\. ]"," ");
+               s=s.replace("amp","");
+               File_Write(path, count+","+un+"," + s + "\n");
+               //File_Write(path,s);
+               count++;
+           }
+
+//       String q2="select tweetid,tweetcontent,pubtime from n_tweet_content where username='"+username+"' and username<>retweetusername;";
+//       ResultSet rs2=stat1.executeQuery(q2);
+//           while (rs2.next()) {
+//               //String username=rs1.getString(1);
+//               String tweetid = rs2.getString(1);
+//               String tweetcontent = rs2.getString(2);
+//               Timestamp pubtime = rs2.getTimestamp(3);
+//               String htsql="select hashtag from n_favorite_sampletweets where tweetid='"+tweetid+"';";
+//               ResultSet rs0=stat_ht.executeQuery(htsql);
+//               boolean val=rs0.next();
+//               String ht="";
+//               if(val==true) {
+//                   ht = rs0.getString(1);
+//               }
+//               rs0.close();
+//
+//               long ltime = pubtime.getTime();
+//               int index = (int) Math.floor((ltime - lmintime) / ddura);
+//               tweetcontent+=" "+getExpandTweets(tweetid,ht);
+//
+//               String s = tweetcontent.replaceAll("[^A-Za-z0-9@\\. ]"," ");
+//               File_Write(path, count+",tweet," + s + "\n");
+//               //File_Write(path,s);
+//               count++;
+//           }
+//
+//       String q3="select tweetid,tweetcontent,pubtime from n_tweet_content where username='"+username+"' and username=retweetusername;";
+//       ResultSet rs3=stat1.executeQuery(q3);
+//           while (rs3.next()) {
+//               //String username=rs1.getString(1);
+//               String tweetid = rs3.getString(1);
+//               String tweetcontent = rs3.getString(2);
+//               Timestamp pubtime = rs3.getTimestamp(3);
+//               String htsql="select hashtag from n_favorite_sampletweets where tweetid='"+tweetid+"';";
+//               ResultSet rs0=stat_ht.executeQuery(htsql);
+//               boolean val=rs0.next();
+//               String ht="";
+//               if(val==true) {
+//                   ht = rs0.getString(1);
+//               }
+//               rs0.close();
+//
+//               long ltime = pubtime.getTime();
+//               int index = (int) Math.floor((ltime - lmintime) / ddura);
+//               tweetcontent+=" "+getExpandTweets(tweetid,ht);
+//
+//               String s = tweetcontent.replaceAll("[^A-Za-z0-9@\\. ]"," ");
+//               File_Write(path, count+",retweet," + s + "\n");
+//               //File_Write(path,s);
+//               count++;
+//           }
+
+           rs1.close();
+//           rs2.close();
+//           rs3.close();
+           stat1.close();
+           
+
+//            String command="cd tmttest;" +
+//                    "java -jar main.jar tmt_script_old.scala;cp termcount.txt termindex.txt ./"+dirname+";cp lda/*.csv "+dirname+";rm lda;rm termcount.txt termindex.txt;";
+//           //String output="";
+//           executeCommand(command);
+//           //System.out.println(output);
+
+       }
+       stat_name.close();
+       stat_ht.close();
+       System.out.println("Over...");
+       return;
+
+   }
+
+    private static String executeCommand(String command) {
+
+        StringBuffer output = new StringBuffer();
+
+        Process p;
+        try {
+            p = Runtime.getRuntime().exec(command);
+            p.waitFor();
+            BufferedReader reader =
+                    new BufferedReader(new InputStreamReader(p.getInputStream()));
+
+            String line = "";
+            while ((line = reader.readLine())!= null) {
+                output.append(line + "\n");
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return output.toString();
+
+    }
+
+    public static String getExpandTweets(String tid, String hashtag) throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+
+        String expandstr="";
+        Statement stat=conn.createStatement();
+        String s1="select tweetcontent from n_favorite_tweetexpand where fromtweetid='"+tid+"';";
+        String s2="select tweetcontent from n_favorite_hashtagexpand where hashtag='"+hashtag+"' limit 1;";
+
+        ResultSet rs1=stat.executeQuery(s1);
+        while(rs1.next())
+        {
+            String s=rs1.getString(1);
+            expandstr+=s+" ";
+        }
+        rs1.close();
+        if(!"".equals(hashtag)) {
+            ResultSet rs2 = stat.executeQuery(s2);
+            while (rs2.next()) {
+                String s = rs2.getString(1);
+                expandstr += s + " ";
+            }
+            rs2.close();
+        }
+        stat.close();
+
+        conpool.returnConnection(conn);
+
+        return expandstr;
+    }
+
+    
+    public static void outputdata() throws SQLException
+    {
+        String path="/Users/zhangyubao/Documents/twittertrend/fakeaccountnames.txt";
+        String path1="/Users/zhangyubao/Documents/twittertrend/fakeaccountsuspectinfo.txt";
+        String path2="/Users/zhangyubao/Documents/twittertrend/fakeaccountallinfo.txt";
+        Connection conn=conpool.getConnection();
+        Statement stat1=conn.createStatement();
+        //File_Read(path);
+        String content="";
+        try {
+            File file = new File(path);
+            
+            FileReader fr = new FileReader(file);
+            //FileInputStream in = new FileInputStream(file);
+            BufferedReader rin = new BufferedReader(fr);
+
+            StringBuilder data = new StringBuilder(150);
+                String line;
+                while ((line = rin.readLine()) != null)
+                {   
+                    data.append(line);
+                    line=line.trim();
+                    System.out.println(line);
+                    String q1="select nickname,profile,authen,address,url,followcnt,friendcnt,tweetcnt from tb_friendtmp_userinfo where username='"+line+"' and nickname is not null;";
+                    ResultSet rs1=stat1.executeQuery(q1);
+                    while(rs1.next())
+                    {
+                        String profile=rs1.getString("profile");
+                        String address=rs1.getString("address");
+                        String url=rs1.getString("url");
+                        String authen=rs1.getString("authen");
+                        String followcnt=rs1.getString("followcnt");
+                        String friendcnt=rs1.getString("friendcnt");
+                        String tweetcnt=rs1.getString("tweetcnt");
+                        
+                        int urlempty=0,adrempty=0,proempty=0;
+                        if(url.equals(""))
+                        {
+                            urlempty=1;
+                        }
+                        if(address.equals(""))
+                        {
+                            adrempty=1;
+                        }
+                        if(profile.equals(""))
+                        {
+                            proempty=1;
+                        }
+                        String outline=line+","+authen+","+proempty+","+adrempty+","+urlempty+","+followcnt+","+friendcnt+","+tweetcnt+"\n";
+                        System.out.println(outline);
+                        File_Write(path1,outline);
+                    }
+                    rs1.close();
+                }
+                rin.close();
+                fr.close();
+                
+                //content = data.toString();
+                
+       } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+       }
+        
+        
+        //////////GET INFO for ALL////////////
+        String q2="select username,nickname,profile,authen,address,url,followcnt,friendcnt,tweetcnt from tb_friendtmp_userinfo where nickname is not null;";
+        ResultSet rs2=stat1.executeQuery(q2);
+        while(rs2.next())
+        {
+            String line=rs2.getString("username");
+            String profile=rs2.getString("profile");
+            String address=rs2.getString("address");
+            String url=rs2.getString("url");
+            String authen=rs2.getString("authen");
+            String followcnt=rs2.getString("followcnt");
+            String friendcnt=rs2.getString("friendcnt");
+            String tweetcnt=rs2.getString("tweetcnt");
+
+            int urlempty=0,adrempty=0,proempty=0;
+            if(url.equals(""))
+            {
+                urlempty=1;
+            }
+            if(address.equals(""))
+            {
+                adrempty=1;
+            }
+            if(profile.equals(""))
+            {
+                proempty=1;
+            }
+            String outline=line+","+authen+","+proempty+","+adrempty+","+urlempty+","+followcnt+","+friendcnt+","+tweetcnt+"\n";
+            System.out.println(outline);
+            File_Write(path2,outline);
+        }
+        
+        rs2.close();
+        stat1.close();
+        conpool.returnConnection(conn);
+        
+        System.out.println("Over");
+    }
+    
+    public static void DBoperate() throws SQLException 
+    {
+        Connection conn=conpool.getConnection();
+
+        Statement stat3=conn.createStatement();
+        Statement stat2=conn.createStatement();
+        Statement stat1=conn.createStatement();
+
+        String q1="select distinct favorited from n_favorite_root_node3;";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next()) {
+            String un=rs1.getString(1);
+            System.out.println(un);
+            String q3 = "select id,favoritedusername "
+                    + " from n_favorite_content_level2 where username='"+un+"';";
+            ResultSet rs3 = stat3.executeQuery(q3);
+
+            while (rs3.next()) {
+
+                int tid = rs3.getInt(1);
+                //String username = rs3.getString(2);
+                //
+                String favorname = rs3.getString(2);
+                favorname = favorname.trim();
+                //System.out.println(tid+"  "+favorname);
+
+                String q4 = "insert into n_favorite_root_node3(username,favorited,level) values('" + un + "','" + favorname + "',2);";
+                stat2.execute(q4);
+
+            }
+            rs3.close();
+        }
+
+        stat3.close();
+        stat2.close();
+        stat1.close();
+        conpool.returnConnection(conn);
+        System.out.println("Over.......");
+        return;
+
+    }
+    
+    public static void outputdynamics() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        int topicnum=11;
+        String[] topics=new String[topicnum];
+        //topics[0]="mtvhottest";
+        topics[1]="ImSingleBecause";
+        topics[2]="tgif";
+        topics[3]="20factsaboutme";
+        topics[4]="wecantdateif";
+        topics[5]="IHatePeopleThat";
+        topics[6]="MentionSomeoneHandsome";
+        topics[7]="mentionsomeonebeautiful";
+        topics[8]="SingleBecause";
+        topics[9]="TalkAboutYourCrush";
+        topics[10]="ifwedate";
+        topics[0]="easilyattractedto";
+//        topics[0]="Syria";
+//topics[1]="vegas";
+//topics[2]="Canelo";
+//topics[3]="america";
+//topics[4]="Yankees";
+//topics[5]="Chicago";
+//topics[6]="ipad";
+//topics[7]="NFL";
+//topics[8]="Obamacare";
+        
+        String path="/Users/zhangyubao/Documents/twittertrend/data/";
+        int flag=3; //0:sample , 1:search , 2:trend, 3:spam/authen
+        Statement stat1=conn.createStatement();
+        switch(flag)//sample
+        {
+            case 0:
+            
+                for(int i=0;i<topicnum;i++)
+                {
+                    System.out.println("Sample: "+topics[i]);
+                    String path1=path+"infer_sample_"+topics[i];
+
+                    String q1="select frequency,usernumber,rtnumber,mtnumber,followcount,"
+                            + "tweetcount,timeinfo from tb_sample_topicdyn where hashtag='"+topics[i]+"';";
+                    ResultSet rs1=stat1.executeQuery(q1);
+                    while(rs1.next())
+                    {
+                        File_Write(path1,Integer.toString(rs1.getInt(1))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(2))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(3))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(4))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(5))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(6))+",");
+                        Timestamp t=rs1.getTimestamp(7);
+                        File_Write(path1,t.toString()+"\n");
+
+                    }
+                    rs1.close();
+                }
+
+                //stat1.close();
+
+                break;
+            //elseif(flag==1)//search
+            case 1:
+                //Statement stat1=conn.createStatement();
+                for(int i=0;i<topicnum;i++)
+                {
+                    System.out.println("Search: "+topics[i]);
+                    String path1=path+"infer_search_"+topics[i];
+
+                    String q1="select frequency,usernumber,rtnumber,mtnumber,followcount,"
+                            + "tweetcount,timeinfo from tb_search_topicdyn where hashtag='"+topics[i]+"';";
+                    ResultSet rs1=stat1.executeQuery(q1);
+                    while(rs1.next())
+                    {
+                        File_Write(path1,Integer.toString(rs1.getInt(1))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(2))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(3))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(4))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(5))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(6))+",");
+                        Timestamp t=rs1.getTimestamp(7);
+                        File_Write(path1,t.toString()+"\n");
+
+                    }
+                    rs1.close();
+                }
+
+                //stat1.close();
+                break;
+            case 2:
+                 for(int i=0;i<topicnum;i++)
+                {
+                    System.out.println("Trend: "+topics[i]);
+                    String path1=path+"infer_trend_"+topics[i];
+
+                    String q1="select t_inserttime"
+                            + " from tb_trend where t_name='"+topics[i]+"';";
+                    ResultSet rs1=stat1.executeQuery(q1);
+                    while(rs1.next())
+                    {
+
+                        Timestamp t=rs1.getTimestamp(1);
+                        File_Write(path1,t.toString()+"\n");
+
+                    }
+                    rs1.close();
+                }
+                break;
+                
+            case 3:
+                for(int i=0;i<topicnum;i++)
+                {
+                    System.out.println("Spam/authen: "+topics[i]);
+                    String path1=path+"infer_spamauthen_"+topics[i];
+
+                    String q1="select spamnum,authen,timeinfo"
+                            + " from tb_sample_add_topicdyn where hashtag='"+topics[i]+"';";
+                    ResultSet rs1=stat1.executeQuery(q1);
+                    while(rs1.next())
+                    {
+
+                        //Timestamp t=rs1.getTimestamp(1);
+                        File_Write(path1,Integer.toString(rs1.getInt(1))+",");
+                        File_Write(path1,Integer.toString(rs1.getInt(2))+",");
+                        Timestamp t=rs1.getTimestamp(3);
+                        File_Write(path1,t.toString()+"\n");
+                    }
+                    rs1.close();
+                }
+                break;
+                
+                
+            default:
+                break;
+        
+        }
+        stat1.close();
+        
+        System.out.println("Over");
+        conpool.returnConnection(conn);
+    }
+    
+    public static void uniteSearchdynamics() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        Statement stat1=conn.createStatement();
+        String q1="select t1.id,t2.id "
+                //"select t1.frequency,t1.usernumber,t1.rtnumber,t1.mtnumber,t1.followcount,t1.tweetcount,t1.id,"
+                //+ "t2.frequency,t2.usernumber,t2.rtnumber,t2.mtnumber,t2.followcount,t2.tweetcount,t2.id "
+                + "from tb_search_topicdyn as t1, tb_search_topicdyn as t2 "
+                + "where t1.hashtag=t2.hashtag and t1.timeinfo=t2.timeinfo and t1.id<>t2.id and t1.id>19261 and t2.id>19261;";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            int id1=rs1.getInt(1);
+            int id2=rs1.getInt(2);
+            System.out.println(id1+"  "+id2);
+            
+        }
+        rs1.close();
+        stat1.close();
+        conpool.returnConnection(conn);
+        System.out.println("over!");
+    }
+    
+    public static void getSampleThread() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        Statement stat1=conn.createStatement();
+        String q1="select hashtag,fromtime,totime from tb_samplethread where totime<'2013-07-16 23:59:59';";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            String ht=rs1.getString(1);
+            Timestamp ft=rs1.getTimestamp(2);
+            Timestamp tt=rs1.getTimestamp(3);
+            
+            //if(tt.)
+            Statement stat2=conn.createStatement();
+            String q2="insert into tb_search_samplethread(select * from tb_search1 where "
+                    + "(hashtag1='"+ht+"' or hashtag2='"+ht+"') and publishTime<'"+tt+"' and publishTime<'"+ft+"');";
+            stat2.execute(q2);
+            stat2.close();
+            
+            Statement stat3=conn.createStatement();
+            String q3="insert into tb_search_samplethread(select * from tb_search2 where "
+                    + "(hashtag1='"+ht+"' or hashtag2='"+ht+"') and publishTime<'"+tt+"' and publishTime<'"+ft+"');";
+            stat3.execute(q3);
+            stat3.close();
+        
+        }
+        rs1.close();
+        stat1.close();
+        conn.close(); 
+    }
+    
+    public static void measuretrendtime() throws SQLException
+    {
+        String path="/Users/zhangyubao/Documents/twittertrend/trendtimeduration.txt";
+        //stringarray sa=new stringarray();
+        String[][] trend=new String[5000][10];
+
+         
+        //ArrayList<stringarray> trendarray=new ArrayList<stringarray>(3000);
+         
+        Connection conn=conpool.getConnection();
+        
+        Statement stat1=conn.createStatement();
+        String q1="select id,t_name from tb_trend_min where t_type='TrendTw';";
+        ResultSet rs1=stat1.executeQuery(q1);
+        int backid=0;
+        int nowid=0;
+        int cnt=0;
+        int colcnt=0;int count=0;
+        while(rs1.next())
+        {
+            
+            nowid=rs1.getInt(1);
+            String name=rs1.getString(2);
+            
+            //System.out.println(nowid+"  "+name);
+            
+            if(nowid-backid==1 && cnt<9)
+            {
+                ++cnt;
+                trend[colcnt][cnt]=name;
+            }else
+            {
+
+                if(backid!=0)
+                {   
+                    //System.out.println(cnt);
+                    ++colcnt;
+                }
+                
+                cnt=0;
+                
+//                for(int i=0;i<10;i++)
+//                    trend[i]="";
+                
+                trend[colcnt][cnt]=name;
+                
+            }
+           
+            backid=nowid;
+        }
+        rs1.close();
+        stat1.close();
+        
+        
+        System.out.println("Array ready...");
+        //compare trend array
+        
+        //ArrayList<Integer> timearray=new ArrayList<Integer>();
+        
+//        int size=trendarray.size();
+//        for(int k=0;k<size;k++)
+//        {
+//            String[] s=trendarray.get(k);
+//            for(int h=0;h<10;h++)
+//            {
+//                System.out.print(s[h]+"   ");
+//            }
+//            System.out.print("\n");
+//        }
+        int[] numarray=new int[10];
+        int num=0;
+        for(int i=0;i<colcnt;i++)
+        {
+            //System.out.println(i+"   ");
+            String[] trend1=trend[i];
+            String[] trend2=trend[i+1];
+            for(int j=0;j<trend1.length;j++)
+            {
+                //System.out.print(trend1[j]+"   ");
+                if(Arrays.asList(trend2).contains(trend1[j]))
+                {
+                    numarray[j]++;
+                }else
+                {
+                    if(null!=trend1[j])
+                    {
+                        if(trend1[j].startsWith("#"))
+                        {
+                            num=0;
+                        }else
+                        {
+                            num=1;
+                        }
+                        String snum=Integer.toString(num)+"  "+Integer.toString(numarray[j]);
+                        //System.out.println(snum+"\n");
+                        File_Write(path,snum+"\n");
+                        numarray[j]=1;
+                    }
+                }
+            }
+//            
+            
+//            for(int j=0;j<10;j++)
+//                System.out.print(trend2[j]+"   ");
+//            System.out.print("\n");
+            
+            //boolean areEqual = Arrays.equals(Arrays.sort(trend1), Arrays.sort(trend2));
+//            if(Arrays.equals(trend1,trend2))
+//            {
+//                ++num;
+//            }else
+//            {
+//                String snum=Integer.toString(num);
+//                System.out.println(snum+"\n");
+//                File_Write(path,snum+"\n");
+//                num=0;
+//            }
+            
+        }
+        System.out.println("Over....");
+        
+    }
+    
+    public static void traceconscutivetrend() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        Statement stat1=conn.createStatement();
+        String q1="select hashtag from tb_sampleht;";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            String ht=rs1.getString(1);
+            
+            Statement stat2=conn.createStatement();
+            String q2="select t_inserttime from tb_trend where t_name='"+ht+"' and t_type like 'Sample%' order by t_inserttime asc;";
+            ResultSet rs2=stat2.executeQuery(q2);
+            
+            int num=0;
+            long lasttime=0;
+            long nowtime=0;
+            long fromtime=0;
+            while(rs2.next())
+            {
+                
+                Timestamp ts=rs2.getTimestamp(1);
+                
+                nowtime=ts.getTime();
+                
+                if(nowtime-lasttime<40*60*1000)
+                {
+                    if(num==0)
+                    {
+                        fromtime=nowtime;
+                    }
+                    
+                    System.out.print(new Timestamp(nowtime)+"   ");
+                    
+                    num++;
+                    
+                    
+                }else
+                {
+                    System.out.print("\n");
+                    if(num>2)
+                    {
+                        Timestamp tf=new Timestamp(fromtime);
+                        Timestamp tt=new Timestamp(lasttime+30*60*1000);
+                        System.out.println((nowtime-lasttime)/1800000+"   "+tf+"   "+tt);
+                        Statement stat3=conn.createStatement();
+                        String q3="insert into tb_samplethread(hashtag,fromtime,totime,threadnum)values('"+ht+"','"+tf+"','"+tt+"','"+num+"');";
+                        System.out.println(ht+" "+num);
+                        stat3.execute(q3);
+                        stat3.close();
+                        
+                    }
+                    num=0;
+                    //fromtime=nowtime;
+                }
+                lasttime=nowtime;
+                
+            }
+            rs2.close();
+            stat2.close();
+            
+        }
+        rs1.close();
+        stat1.close();
+        
+        conn.close();
+    }
+    
+    public static void checkfollowing() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        int flag=0;
+        Timestamp ts=Timestamp.valueOf("2013-09-05 10:19:30");
+        long time=ts.getTime();
+        
+        while(true)
+        {
+            long du=0;
+            
+            Statement stat1=conn.createStatement();
+            String q1="select userId from tb_sample_users_manip where isUpdate=1 and ischecked=0 limit 1;";
+            ResultSet rs1=stat1.executeQuery(q1);
+            rs1.next();
+            long uid=rs1.getLong(1);
+            rs1.close();
+            stat1.close();
+            
+            System.out.println(uid);
+            
+            Statement stat2=conn.createStatement();
+            String q2="select friend from tb_sample_users_friend where user='"+uid+"';";
+            ResultSet rs2=stat2.executeQuery(q2);
+            while(rs2.next())
+            {
+                long fid=rs2.getLong(1);
+                
+                //check if fid exist in the tb_tmp
+                Statement stat3=conn.createStatement();
+                String q3="select id from tb_tmp where userId='"+fid+"';";
+                ResultSet rs3=stat3.executeQuery(q3);
+                if(rs3.next())
+                {
+                    flag=1;
+                    System.out.println(flag+" "+fid);
+                    
+                    
+//                    Statement stat6=conn.createStatement();
+//                    String q6="select httime from tb_sample_dyninfo_old where httime<'2013-09-05 10:19:30' and userId='"+fid+"';";
+//                    ResultSet rs6=stat6.executeQuery(q6);
+//                    
+//                    while(rs6.next())
+//                    {
+//                        Timestamp t=rs6.getTimestamp(1);
+//                        long lt=t.getTime();
+//                        long tmp=time-lt;
+//                        if(du==0 || tmp<du)
+//                        {
+//                            du=tmp;
+//                        }
+//                        
+//                    }
+                    
+                    Statement stat6=conn.createStatement();
+                    String q6="insert into tb_friendtmp(userId) value('"+fid+"')";
+                    stat6.execute(q6);
+                    stat6.close();
+                    
+//                    rs3.close();
+//                    stat3.close();
+//                    break;
+                }
+                rs3.close();
+                stat3.close();
+            }
+            
+//            
+//            
+//            if(flag==1)
+//            {
+//                Statement stat4=conn.createStatement();
+//                String q4="update tb_sample_users_manip set isfollowing=1 where userId='"+uid+"';";
+//                stat4.execute(q4);
+//                stat4.close();
+//                
+//                
+//                Statement stat7=conn.createStatement();
+//                String q7="update tb_sample_users_manip set duration='"+du+"' where userId='"+uid+"';";
+//                stat7.execute(q7);
+//                stat7.close();
+//            }
+            Statement stat5=conn.createStatement();
+            String q5="update tb_sample_users_manip set ischecked=1 where userId='"+uid+"';";
+            stat5.execute(q5);
+            stat5.close();
+            
+            flag=0;
+        }
+    }
+    
+    public static void getNetRel() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        try{
+        Statement stat1=conn.createStatement();
+//        String q1="insert into tb_sample_htfornetrel (select * from tb_sample where `hashtag1`='mtvhottest' "
+//                + "or `hashtag2`='mtvhottest' or `hashtag1`='20factsaboutme' or `hashtag2`='20factsaboutme' "
+//                + "or `hashtag1`='wecantdateif' or `hashtag2`='wecantdateif' or `hashtag1`='MentionSomeoneHandsome' "
+//                + "or `hashtag2`='MentionSomeoneHandsome' or `hashtag1`='mentionsomeonebeautiful' or "
+//                + "`hashtag2`='mentionsomeonebeautiful' or `hashtag1`='SingleBecause' or "
+//                + "`hashtag2`='SingleBecause' or `hashtag1`='TalkAboutYourCrush' or `hashtag2`='TalkAboutYourCrush' "
+//                + "or `hashtag1`='easilyattractedto' or `hashtag2`='easilyattractedto')";
+        String q1="select content,hashtag2,publishTime from tb_sample_htfornetrel where content like 'RT @%';";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            
+            String content=rs1.getString(1);
+            String id=content.split(":",-2)[0];
+            id=id.substring(4, id.length());
+            
+            if(true)
+            {
+                String ht=rs1.getString(2);
+                if(!"".equals(ht))
+                {
+                    Timestamp t=rs1.getTimestamp(3);
+
+                    Statement stat2=conn.createStatement();
+                    String q2="select * from tb_sample_htfornetrel where userId ='"+id+"';";
+                    ResultSet rs2=stat2.executeQuery(q2);
+                    if(rs2.next())
+                    {
+                        String user=rs2.getString("userId");
+                        long l=rs2.getLong("userId_long");
+                        System.out.println(user);
+
+                        Statement stat3=conn.createStatement();
+                        String q3="insert into tb_netrel(hashtag,relnum,timeinfo) values('"+ht+"','"+l+"','"+t+"');";
+                        stat3.execute(q3);
+                        stat3.close();
+
+
+                    }
+                    stat2.close();
+                }
+            }
+        }
+        stat1.close();
+        }catch(SQLException s)
+        {
+            System.out.println(s);
+        }
+        System.out.println("Over!!!!");
+       
+    }
+    
+    public static void tmpsearchdyn() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        int currentpos=0;
+        
+        //get pos
+        Statement stat = conn.createStatement();
+        String q = "select processpos from tb_position where name='searchdyntime';";
+        ResultSet rs = stat.executeQuery(q);
+        rs.next();
+        int pos=rs.getInt(1);
+        rs.close();
+        stat.close();
+        
+        currentpos=pos;
+        //get time
+        Statement stat1 = conn.createStatement();
+        String q1 = "select id,timeinfo from tb_globaldyn where id>='"+pos+"';";
+        ResultSet rs1 = stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            int tpos=rs1.getInt(1);
+            currentpos=tpos;
+            Timestamp t_start=rs1.getTimestamp(2);
+            
+            long time = t_start.getTime();
+            time=time + 30*60*1000;
+            Timestamp t_end=new Timestamp(time);
+            t_end.setTime(time);
+            
+//            Statement stat2=conn.createStatement();
+//            String q2="select mbloginfoId from tb_search where publishTime>='"+t_start+"' limit 1;";
+//            ResultSet rs2=stat2.executeQuery(q2);
+//            rs2.next();
+//            int startid=rs2.getInt(1);
+//            rs2.close();
+//            stat2.close();
+//            
+//            Statement stat3=conn.createStatement();
+//            String q3="select mbloginfoId from tb_search where publishTime>='"+t_end+"' limit 1;";
+//            ResultSet rs3=stat3.executeQuery(q3);
+//            rs3.next();
+//            int endid=rs3.getInt(1);
+//            rs3.close();
+//            stat3.close();
+            
+                
+                //get frequency
+                Statement stat4=conn.createStatement();
+                String q4="select count(*) from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey';";
+                ResultSet rs4=stat4.executeQuery(q4);
+                rs4.next();
+                int cnt=rs4.getInt(1);
+                rs4.close();
+                stat4.close();
+                
+                Timestamp t1=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t1+"]: get frequency...");
+                
+                
+                //get user number
+                Statement stat5=conn.createStatement();
+                String q5="select count(distinct userId) from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey';";
+                ResultSet rs5=stat5.executeQuery(q5);
+                rs5.next();
+                int usercnt=rs5.getInt(1);
+                rs5.close();
+                stat5.close();
+                
+                Timestamp t2=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t2+"]: get user number...");
+
+
+                //get rt number
+                Statement stat6=conn.createStatement();
+                String q6="select count(*) from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey' and rt=1;";
+                ResultSet rs6=stat6.executeQuery(q6);
+                rs6.next();
+                int rtcnt=rs6.getInt(1);
+                rs6.close();
+                stat6.close();
+                
+                Timestamp t3=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t3+"]: get rt number...");
+
+                //get mt number
+                Statement stat7=conn.createStatement();
+                String q7="select count(*) from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey' and mt<>0;";
+                ResultSet rs7=stat7.executeQuery(q7);
+                rs7.next();
+                int mtcnt=rs7.getInt(1);
+                rs7.close();
+                stat7.close();
+                
+                Timestamp t4=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t4+"]: get mt number...");
+
+                //get follow count
+                int followcnt=0;
+                Statement stat8=conn.createStatement();
+                String q8="select followcount from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey';";
+                ResultSet rs8=stat8.executeQuery(q8);
+                while(rs8.next())
+                {
+                    int fcnt=rs8.getInt(1);
+                    followcnt=followcnt+fcnt;
+                }
+                
+                rs8.close();
+                stat8.close();
+                
+                Timestamp t5=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t5+"]: get follow count...");
+
+                //get tweet count
+                int tweetcnt=0;
+                Statement stat9=conn.createStatement();
+                String q9="select tweetcount from tb_sample_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='OperationVoteCollinsKey';";
+                ResultSet rs9=stat9.executeQuery(q9);
+                while(rs9.next())
+                {
+                    int tcnt=rs9.getInt(1);
+                    tweetcnt=tweetcnt+tcnt;
+                }
+                
+                rs8.close();
+                stat8.close();
+                
+                Timestamp t6=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t6+"]: get tweet count...");
+                
+                
+                //insert topic
+                Statement stat_in=conn.createStatement();
+                String q_in="insert into tb_sample_topicdyn(hashtag,frequency,timeinfo,usernumber,rtnumber,mtnumber,"
+                        + "followcount,tweetcount)"
+                        + " values ('OperationVoteCollinsKey','"+cnt+"','"+t_start+"','"+usercnt+"','"+rtcnt+"','"+mtcnt+"',"
+                        + "'"+followcnt+"','"+tweetcnt+"')";
+                stat_in.execute(q_in);
+                stat_in.close();
+        }
+        
+        Statement stat10 = conn.createStatement();
+        String q10 = "update tb_position set processpos='"+currentpos+"' where name='searchdyntime';";
+        stat10.execute(q10);
+        stat10.close();
+       
+        rs1.close();
+        stat1.close();
+    }
+    
+    public static void caltrend() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        //coverage and ranking of sample trends and public trends
+        while(true)
+        {
+            Statement stat1=conn.createStatement();
+            String q1="select processpos from tb_position where name='trendtime';";
+            ResultSet rs1=stat1.executeQuery(q1);
+            rs1.next();
+            int pos=rs1.getInt(1);
+            rs1.close();
+            stat1.close();
+            
+            Timestamp trendtime=null;
+            Timestamp sampletime=null;
+            String[] pubtrend=new String[10];
+            String[] samtrend=new String[15];
+            Statement stat2=conn.createStatement();
+            String q2="select id,t_name,t_inserttime from tb_trend where t_type='Trend' and id>'"+pos+"' limit 10;";
+            ResultSet rs2=stat2.executeQuery(q2);
+            int i=0;
+            while(rs2.next())
+            {
+                int id=rs2.getInt(1);
+                
+                Statement stat21=conn.createStatement();
+                String q21="update tb_position set processpos='"+id+"' where name='trendtime';";
+                stat21.execute(q21);
+                stat21.close();
+                
+                String name=rs2.getString(2);
+                trendtime=rs2.getTimestamp(3);
+                pubtrend[i]=name.toUpperCase();
+                i++;
+            }
+            rs2.close();
+            stat2.close();
+            
+            
+            Statement stat3=conn.createStatement();
+            String q3="select id,t_name,t_inserttime from tb_trend where t_type like 'Sample%' and id>'"+pos+"' limit 15;";
+            ResultSet rs3=stat3.executeQuery(q3);
+            int j=0;
+            while(rs3.next())
+            {
+                int id=rs3.getInt(1);
+                String name=rs3.getString(2);
+                sampletime=rs3.getTimestamp(3);
+                
+                if(Math.abs(trendtime.getTime()-sampletime.getTime())<=30*60*1000)
+                {
+                    Statement stat31=conn.createStatement();
+                    String q31="update tb_position set processpos='"+id+"' where name='trendtime';";
+                    stat31.execute(q31);
+                    stat31.close();
+                }else{
+                    break;
+                }
+                
+                samtrend[j]=name.toUpperCase();
+                j++;
+            }
+            rs3.close();
+            stat3.close();
+            
+            if(Math.abs(trendtime.getTime()-sampletime.getTime())>30*60*1000)
+            {
+                continue;
+            }
+            
+            //calculate coverage
+            int coverage=0;
+            int position=0;
+            for(int k=0;k<pubtrend.length;k++)
+            {
+                for(int l=0;l<samtrend.length;l++)
+                {
+                    if(pubtrend[k].equals(samtrend[l]))
+                    {
+                        coverage++;
+                        position=position+(l+1);
+                    }
+                }
+            }
+            double meanpos=0;
+            if(coverage>0)
+            {
+                meanpos = (double)position/coverage;
+            }
+            Statement stat4=conn.createStatement();
+            String q4="insert tb_trend_coverage(coverage,meanpos,trendtime)values('"+coverage+"','"+meanpos+"','"+trendtime+"')";
+            stat4.execute(q4);
+            stat4.close();
+            
+        }
+    }
+    
+    public static void movesharpfromtrend() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        Statement stat1=conn.createStatement();
+        String q1="select id,t_name from tb_trend where t_type='Trend' and t_name like '#%';";
+        ResultSet rs1=stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            int id=rs1.getInt(1);
+            String name=rs1.getString(2);
+            name=name.substring(1, name.length());
+            Statement stat2=conn.createStatement();
+            String q2="update tb_trend set t_name='"+name+"' where id='"+id+"';";
+            stat2.execute(q2);
+            stat2.close();
+        }
+        rs1.close();
+        stat1.close();
+        System.out.println("over!!!");
+    }
+    
+    public static void calsampledynamics() throws SQLException, FileNotFoundException, IOException
+    {
+        Connection conn=conpool.getConnection();
+
+        while(true)
+        {
+            
+            Statement stat0=conn.createStatement();
+            String q0="select processpos from tb_position where name='sampleht';";
+            ResultSet rs0=stat0.executeQuery(q0);
+            rs0.next();
+            int ht=rs0.getInt(1);
+            rs0.close();
+            stat0.close();
+
+            Statement stat1=conn.createStatement();
+            String q1="select hashtag from tb_sampleht where id='"+ht+"';";
+            ResultSet rs1=stat1.executeQuery(q1);
+            rs1.next();
+            String topic=rs1.getString(1);
+            rs1.close();
+            stat1.close();
+
+            Statement stat01=conn.createStatement();
+            String q01="select position from tb_position where name='samplehttime';";
+            ResultSet rs01=stat01.executeQuery(q01);
+            rs01.next();
+            int maxhttime=rs01.getInt(1);
+            rs01.close();
+            stat01.close();
+
+            Statement stat02=conn.createStatement();
+            String q02="select processpos from tb_position where name='samplehttime';";
+            ResultSet rs02=stat02.executeQuery(q02);
+            rs02.next();
+            int httime=rs02.getInt(1);
+            rs02.close();
+            stat02.close();
+
+            while(httime<=maxhttime)
+            {
+
+                ////////////////get time span///////////////
+                Statement stat2=conn.createStatement();
+                String q2="select stime from tb_sample_time where id>='"+httime+"' limit 2;";
+                ResultSet rs2=stat2.executeQuery(q2);
+                rs2.next();
+                Timestamp starttime=rs2.getTimestamp(1);
+                rs2.next();
+                Timestamp endtime=rs2.getTimestamp(1);
+                rs2.close();
+                stat2.close();
+                
+                httime=httime+1;
+                
+                    //get dynamics of sample data set from starttime to endtime
+//                    Statement stat4=conn.createStatement();
+//                    String q4="select count(hashtag) from tb_netrel where "
+//                            + "timeinfo>'"+starttime+"' and timeinfo<='"+endtime+"' and hashtag='"+topic+"';";
+//                    ResultSet rs4=stat4.executeQuery(q4);
+//                    rs4.next();
+//                    int cnt=rs4.getInt(1);
+//                    rs4.close();
+//                    stat4.close();
+
+                    //get dynamics of sample data set from starttime to endtime
+                    Statement stat4=conn.createStatement();
+                    String q4="select count(hashtag) from tb_sample_dyninfo where "
+                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+                    ResultSet rs4=stat4.executeQuery(q4);
+                    rs4.next();
+                    int cnt=rs4.getInt(1);
+                    rs4.close();
+                    stat4.close();
+
+                    //get user number
+                    Statement stat5=conn.createStatement();
+                    String q5="select count(distinct userId) from tb_sample_dyninfo where "
+                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+                    ResultSet rs5=stat5.executeQuery(q5);
+                    rs5.next();
+                    int usercnt=rs5.getInt(1);
+                    rs5.close();
+                    stat5.close();
+
+
+                    //get rt number
+//                    Statement stat6=conn.createStatement();
+//                    String q6="select count(*) from tb_sample_dyninfo where "
+//                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and rt=1;";
+//                    ResultSet rs6=stat6.executeQuery(q6);
+//                    rs6.next();
+//                    int rtcnt=rs6.getInt(1);
+//                    rs6.close();
+//                    stat6.close();
+
+                    //get mt number
+                    Statement stat7=conn.createStatement();
+                    String q7="select count(*) from tb_sample_dyninfo where "
+                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and mt<>0;";
+                    ResultSet rs7=stat7.executeQuery(q7);
+                    rs7.next();
+                    int mtcnt=rs7.getInt(1);
+                    rs7.close();
+                    stat7.close();
+
+                    //get follow count
+                    int followcnt=0;
+                    Statement stat8=conn.createStatement();
+                    String q8="select followcount from tb_sample_dyninfo where "
+                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+                    ResultSet rs8=stat8.executeQuery(q8);
+                    while(rs8.next())
+                    {
+                        int fcnt=rs8.getInt(1);
+                        followcnt=followcnt+fcnt;
+                    }
+
+                    rs8.close();
+                    stat8.close();
+
+                    //get tweet count
+                    int tweetcnt=0;
+                    Statement stat9=conn.createStatement();
+                    String q9="select tweetcount from tb_sample_dyninfo where "
+                            + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+                    ResultSet rs9=stat9.executeQuery(q9);
+                    while(rs9.next())
+                    {
+                        int tcnt=rs9.getInt(1);
+                        tweetcnt=tweetcnt+tcnt;
+                    }
+
+                    rs8.close();
+                    stat8.close();
+
+
+                    //insert topic
+                    int rtcnt=0;
+                    Statement stat_in=conn.createStatement();
+                    String q_in="insert into tb_sample_topicdyn(hashtag,frequency,timeinfo,usernumber,rtnumber,mtnumber,"
+                            + "followcount,tweetcount)"
+                            + " values ('"+topic+"','"+cnt+"','"+starttime+"','"+usercnt+"','"+rtcnt+"','"+mtcnt+"',"
+                            + "'"+followcnt+"','"+tweetcnt+"')";
+                    stat_in.execute(q_in);
+                    stat_in.close();
+                    
+//                    Statement stat_in=conn.createStatement();
+//                    String q_in="insert into tb_netrel_dyn(ht,relnum,timeinfo)"
+//                            + " values ('"+topic+"','"+cnt+"','"+starttime+"')";
+//                    stat_in.execute(q_in);
+//                    stat_in.close();
+                    
+                    //renew position
+                    Statement stat3=conn.createStatement();
+                    String q3="update tb_position set processpos='"+httime+"' where name='samplehttime';";
+                    stat3.execute(q3);
+                    stat3.close();
+
+
+                    Timestamp t=new Timestamp(System.currentTimeMillis());
+                    System.out.println("["+t+"]:"+ht+"th topic and "+httime+"th time...");
+            }//while
+            
+            Statement stat00=conn.createStatement();
+            String q00="update tb_position set processpos='"+(ht+1)+"' where name='sampleht';";
+            stat00.execute(q00);
+            stat00.close();
+            
+            //renew position
+            Statement stat20=conn.createStatement();
+            String q20="update tb_position set processpos=1 where name='samplehttime';";
+            stat20.execute(q20);
+            stat20.close();
+            
+            
+        }//while
+
+           
+         //conpool.returnConnection(conn);
+        
+            
+        
+    }
+    
+    public static void inferht() throws SQLException
+    {
+        Connection conn=conpool.getConnection();
+        
+        //get pos
+        Statement stat = conn.createStatement();
+        String q = "select processpos from tb_position where name='searchdyntime';";
+        ResultSet rs = stat.executeQuery(q);
+        rs.next();
+        int pos=rs.getInt(1);
+        rs.close();
+        stat.close();
+        
+        while(true)
+        {
+            //get trending topics and time
+            //int pos=0;
+            String[] topics=new String[15];
+            int[] dynamics=new int[15];
+            Timestamp ts=null;
+            Statement stat1 = conn.createStatement();
+            String q1 = "select t_name,t_inserttime,id from tb_trend where id>"+pos+" and t_type like 'Sample%' limit 15;";
+            ResultSet rs1 = stat1.executeQuery(q1);
+            int idx=0;
+            while(rs1.next())
+            {
+                topics[idx]=rs1.getString(1); //get topics
+                ts=rs1.getTimestamp(2); //limit time
+                pos=rs1.getInt(3); //renew pos
+                idx++;
+            }
+            rs1.close();
+            stat1.close();
+            
+            //update the pos of trend
+            Statement stat0=conn.createStatement();
+            String q0="update tb_position set processpos='"+pos+"' where name='searchdyntime';";
+            stat0.execute(q0);
+            stat0.close();
+           
+            
+            //infer the ht
+            Timestamp t_start=ts;
+            long time = ts.getTime();
+            time=time + 30*60*1000;
+            Timestamp t_end=new Timestamp(time);
+            t_end.setTime(time);
+            
+//            Statement stat2=conn.createStatement();
+//            String q2="select mbloginfoId from tb_search where publishTime>='"+t_start+"' limit 1;";
+//            ResultSet rs2=stat2.executeQuery(q2);
+//            rs2.next();
+//            int startid=rs2.getInt(1);
+//            rs2.close();
+//            stat2.close();
+//            
+//            Statement stat3=conn.createStatement();
+//            String q3="select mbloginfoId from tb_search where publishTime>='"+t_end+"' limit 1;";
+//            ResultSet rs3=stat3.executeQuery(q3);
+//            rs3.next();
+//            int endid=rs3.getInt(1);
+//            rs3.close();
+//            stat3.close();
+            
+            for(int i=0;i<15;i++)
+            {
+                //each topic
+                
+                //get frequency
+                Statement stat4=conn.createStatement();
+                String q4="select count(*) from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"';";
+                ResultSet rs4=stat4.executeQuery(q4);
+                rs4.next();
+                int cnt=rs4.getInt(1);
+                rs4.close();
+                stat4.close();
+                
+                Timestamp t1=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t1+"]: get frequency...");
+                
+                
+                //get user number
+                Statement stat5=conn.createStatement();
+                String q5="select count(distinct userId) from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"';";
+                ResultSet rs5=stat5.executeQuery(q5);
+                rs5.next();
+                int usercnt=rs5.getInt(1);
+                rs5.close();
+                stat5.close();
+                
+                Timestamp t2=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t2+"]: get user number...");
+
+
+                //get rt number
+                Statement stat6=conn.createStatement();
+                String q6="select count(*) from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"' and rt=1;";
+                ResultSet rs6=stat6.executeQuery(q6);
+                rs6.next();
+                int rtcnt=rs6.getInt(1);
+                rs6.close();
+                stat6.close();
+                
+                Timestamp t3=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t3+"]: get rt number...");
+
+                //get mt number
+                Statement stat7=conn.createStatement();
+                String q7="select count(*) from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"' and mt<>0;";
+                ResultSet rs7=stat7.executeQuery(q7);
+                rs7.next();
+                int mtcnt=rs7.getInt(1);
+                rs7.close();
+                stat7.close();
+                
+                Timestamp t4=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t4+"]: get mt number...");
+
+                //get follow count
+                int followcnt=0;
+                Statement stat8=conn.createStatement();
+                String q8="select followcount from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"';";
+                ResultSet rs8=stat8.executeQuery(q8);
+                while(rs8.next())
+                {
+                    int fcnt=rs8.getInt(1);
+                    followcnt=followcnt+fcnt;
+                }
+                
+                rs8.close();
+                stat8.close();
+                
+                Timestamp t5=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t5+"]: get follow count...");
+
+                //get tweet count
+                int tweetcnt=0;
+                Statement stat9=conn.createStatement();
+                String q9="select tweetcount from tb_search_dyninfo where "
+                        + "httime<'"+t_end+"' and httime>='"+t_start+"' and "
+                        + "hashtag='"+topics[i]+"';";
+                ResultSet rs9=stat9.executeQuery(q9);
+                while(rs9.next())
+                {
+                    int tcnt=rs9.getInt(1);
+                    tweetcnt=tweetcnt+tcnt;
+                }
+                
+                rs8.close();
+                stat8.close();
+                
+                Timestamp t6=new Timestamp(System.currentTimeMillis());
+                System.out.println("["+t6+"]: get tweet count...");
+                
+                
+                //insert topic
+                Statement stat_in=conn.createStatement();
+                String q_in="insert into tb_search_topicdyn(hashtag,frequency,timeinfo,usernumber,rtnumber,mtnumber,"
+                        + "followcount,tweetcount)"
+                        + " values ('"+topics[i]+"','"+cnt+"','"+t_start+"','"+usercnt+"','"+rtcnt+"','"+mtcnt+"',"
+                        + "'"+followcnt+"','"+tweetcnt+"')";
+                stat_in.execute(q_in);
+                stat_in.close();
+                
+                //System.out.println(topics[i]+" at time "+t_start+" done..... from "+startid+"("+t_start+") to "+endid+" ("+t_end+")");
+            }
+            
+            
+        }
+    }
+    
+    public static void extractcascade() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+                Statement stat3 = conn.createStatement();
+        String query3 = "select count(mbloginfoId) "
+                +"from tb_search where hashtag='teamfollowback' "
+//                    +"from tb_search where hashtag='ipad' or hashtag='iphonegames' or hashtag='10TurnOns' or "
+//                    + "hashtag='android' or hashtag='gameinsight' or hashtag='androidgames' or hashtag='ipadgames';";
+//                    + "from tb_search_ht where (hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+//                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+//                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+//                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+//                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+//                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+//                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+//                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain') "
+                            + "and content like '%RT @%';";
+//        
+                    ResultSet rs3 = stat3.executeQuery(query3);
+            rs3.next();
+            int count2 = rs3.getInt(1);
+            rs3.close();
+            stat3.close();
+            
+            int pos2=0;
+
+        
+        while(pos2<count2)
+        {
+            System.out.println("search:"+pos2);
+            int limit = 10000;
+            if(pos2+10000>count2)
+            {
+                limit = count2-pos2;
+            }
+        
+        
+            Statement stat1=conn.createStatement();
+            String q1="select userId,content,publishTime from tb_search_ht where hashtag='teamfollowback' "
+//                    + "(hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+//                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+//                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+//                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+//                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+//                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+//                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+//                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain') "
+                    + "and content like '%RT @%' limit "+limit+" offset "+pos2+";";
+            ResultSet rs1=stat1.executeQuery(q1);
+            while(rs1.next())
+            {
+                String u1=rs1.getString(1);
+                String u2=rs1.getString(2);
+                String time=rs1.getString(3);
+
+                u2=u2.substring(4, u2.length());
+                String[] tmp=u2.split(":");
+                u2=tmp[0];
+
+                if(!u2.contains(" ") && !u2.contains("\n"))
+                {
+                    String s=u2+","+u1+","+time+"\n";
+
+                    System.out.println(s);
+
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/rtcascade",s);
+                }
+            }
+            rs1.close();
+            stat1.close();
+
+            pos2 += 10000;
+        }
+        
+        System.out.println("Over!");
+        
+        conpool.returnConnection(conn);
+        
+    }
+    
+    public static void writeresponsetimesamples() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        Statement stat1=conn.createStatement();
+        String q1="select Url from tb_timeline_highneioutdeg group by Url having count(Url)>100;";
+        ResultSet rs1=stat1.executeQuery(q1);
+        int filecount=0;
+        while(rs1.next())
+        {
+            
+            String url=rs1.getString(1);
+            
+            filecount++;
+            String file="rtsample/rtsample_"+filecount;
+            
+            Statement stat2 = conn.createStatement();
+            String q2 = "select publishTime from tb_timeline_highneioutdeg where Url= '"+url+"';";
+            ResultSet rs2=stat2.executeQuery(q2);
+            while(rs2.next())
+            {
+                String time=rs2.getString(1);
+                File_Write(file,time+"\n");
+                
+            } 
+            System.out.println(filecount);   
+            
+        }
+    }
+    
+    public static void calreciprocity() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        Statement stat1=conn.createStatement();
+        String q1="select count(usersrelationId) from tb_users_relation;";
+        ResultSet rs1=stat1.executeQuery(q1);
+        rs1.next();
+        int totalnum = rs1.getInt(1);
+        rs1.close();
+        stat1.close();
+        
+        int count=0;
+        while(count<totalnum)
+        {
+            Statement stat2 = conn.createStatement();
+            String q2 = "select userId,followId,userLever from tb_users_relation limit 1 offset "+count+";";
+            ResultSet rs2=stat2.executeQuery(q2);
+            rs2.next();
+            long uid=rs2.getInt(1);
+            long fid=rs2.getInt(2);
+            long uf=rs2.getInt(3);
+            rs2.close();
+            stat2.close();
+            
+            //Statement stat5=conn.createStatement();
+            //String q5="select userId,followId,userLever from tb_users_relation where userlever='"+uf+"';";
+//            ResultSet rs5 = stat5.executeQuery(q5);
+//            while(rs5.next())
+//            {
+//                long uid1=rs2.getInt(1);
+//                long fid1=rs2.getInt(2);
+//                long uf1=rs2.getInt(3);
+//                
+//                
+//            }
+            
+            try{
+                Statement stat3 = conn.createStatement();
+                String q3="select userId,followId,userLever from tb_users_relation where userlever='"+uf+"';";
+                //String q3 = "select * from tb_users_relation where userId = '"+fid+"' and followId ='"+uid+"';";
+                ResultSet rs3=stat3.executeQuery(q3);
+                rs3.next();
+                if(!rs3.isAfterLast()&&!rs3.isBeforeFirst())
+                {
+                    try{
+                        Statement stat4=conn.createStatement();
+                        String q4="insert into tb_user_reciprocity(userId,followId) values('"+uid+"','"+fid+"')";
+                        stat4.execute(q4);
+                        stat4.close();
+                    }catch(Exception e)
+                    {
+                        
+                    }
+                }
+                rs3.close();
+                stat3.close();
+            }catch(Exception e)
+            {
+                
+            }
+            
+            count++;
+            if(count%1000==0)
+            {
+                System.out.println(count+" -> "+totalnum);
+            }
+        }
+    }
+    
+    public static void getpotentialscale() throws SQLException, FileNotFoundException, IOException
+    {    
+        Connection conn = conpool.getConnection();
+        
+        String q1= "select userId,publishTime from tb_sample_evoltopics where ";
+        BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream("/Users/zhangyubao/Documents/twitterresult/evoltopicsquery.txt")));
+        String data = null;
+        while((data = br.readLine())!=null)
+        {
+          //System.out.println(data); 
+            
+            //////////////////GET hashtag name/////////////////////
+            String[] htarray = data.split("%");
+            String htname = htarray[1];
+            System.out.println(htname);
+            
+            Statement stat2 = conn.createStatement();
+            String q2=q1+data+" order by publishTime asc;";
+            
+            ResultSet rs2 = stat2.executeQuery(q2);
+            while(rs2.next())
+            {
+                String uid = rs2.getString(1);
+                String time = rs2.getString(2);
+                
+                System.out.println(uid+" "+time);
+                
+                Statement stat3 = conn.createStatement();
+                String q3="select spaminfo from tb_sample_users where userId='"+uid+"';";
+                ResultSet rs3=stat3.executeQuery(q3);
+                rs3.next();
+                int spam=rs3.getInt(1);
+                System.out.println("spam:"+spam);
+                if(0==spam)
+                {
+                    Statement stat4 = conn.createStatement();
+                    String q4 = "select followcount,friendcount,tweetcount from tb_sample_users where userId='"+uid+"';";
+                    ResultSet rs4 = stat4.executeQuery(q4);
+                    rs4.next();
+                    int followcount=rs4.getInt(1);
+                    int friendcount=rs4.getInt(2);
+                    int tweetcount=rs4.getInt(3);
+                    
+                    String tofile = followcount+" "+friendcount+" "+tweetcount+" "+time+"\n";
+                    
+                    System.out.println(tofile);
+                    
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/"+htname+"_follow.txt",tofile);
+                    
+                    rs4.close();
+                    stat4.close();
+                }else
+                {
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/"+htname+"_spam.txt",time+"\n");
+                }
+                
+                rs3.close();
+                stat3.close();
+            }
+            rs2.close();
+            stat2.close();
+        }
+    }
+    
+    public static void getresponsetime() throws SQLException
+    {
+//        long[] b = new long[28];// = new long[1];
+//        b = new long[] {289336522,1003946438,738924308,324122588,1122497124,
+//        36197066,145386809,750180122,736946060,411857892,755368129,389415774,
+//        241742478,389971051,353054725,312086510,71893970,345322960,204875774,
+//        916347684,
+//        1133666005,
+//        847780436,
+//        267492460,
+//        1091024904,
+//        1120391552,
+//        1130057180,
+//        1119471217,
+//        392594161};
+//                
+//        String q= "update tb_sample_evoltopics where "; 
+//        for(int i=0;i<27;i++)
+//        {
+//            q = q+"userId_long='"+b[i]+"' or ";
+//        }
+//        q=q+"userId_long='"+b[27]+"';";
+        
+        Connection conn = conpool.getConnection();
+        Statement stat1 = conn.createStatement();
+        String q1 = "select mbloginfoId,userId,content from tb_sample_evoltopics ";
+        
+        
+    }
+    
+    public static void getuserspaminfo() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+//        Statement stat = conn.createStatement();
+//        String q = "select count(name) from fb_hostlist;";
+//        ResultSet rs = stat.executeQuery(q);
+//        rs.next();
+//        int count = rs.getInt(1);
+        
+        
+        Statement stat1 = conn.createStatement();
+        String q1 = "select name from ipad_hostlist;";
+        ResultSet rs1 = stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            try{
+                String name =rs1.getString(1);
+                Statement stat2 = conn.createStatement();
+                String q2="select spaminfo from tb_search_users where userId='"+name+"' or userId_long='"+name+"';";
+                ResultSet rs2=stat2.executeQuery(q2);
+                rs2.next();
+                int flag = rs2.getInt(1);
+                rs2.close();
+                stat2.close();
+                if(flag==1)
+                {
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfollowinfo","-1\n");
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfriendinfo","-1\n");
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadtweetinfo","-1\n");
+                }else
+                {
+                    //File_Write("/Users/zhangyubao/Documents/twitterresult/ipadspaminfo","0\n");
+                    String q3="select followcount,friendcount,tweetcount from tb_search_users "
+                            + "where userId='"+name+"' or userId_long='"+name+"';";
+                    Statement stat3 = conn.createStatement();
+                    ResultSet rs3 = stat3.executeQuery(q3);
+                    rs3.next();
+                    int follow=rs3.getInt(1);
+                    int friend = rs3.getInt(2);
+                    int tweet = rs3.getInt(3);
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfollowinfo",follow+"\n");
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfriendinfo",friend+"\n");
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/ipadtweetinfo",tweet+"\n");
+                    rs3.close();
+                    stat3.close();
+                }
+                
+            }catch(Exception e)
+            {
+                System.out.println("user outside!");
+                File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfollowinfo","-1\n");
+                File_Write("/Users/zhangyubao/Documents/twitterresult/ipadfriendinfo","-1\n");
+                File_Write("/Users/zhangyubao/Documents/twitterresult/ipadtweetinfo","-1\n");
+            }
+            
+        }
+        rs1.close();
+        stat1.close();
+        System.out.println("Over!");
+        conn.close();
+    }
+    
+//    public static void getUserTime() throws FileNotFoundException, IOException, SQLException
+//    {
+//        Connection conn = conpool.getConnection();
+//        //new int[9];
+//        String dir = "/Users/zhangyubao/Documents/twitterresult/";
+//        MatFileReader matfilereader = new MatFileReader(dir+"fbexecutors.mat");
+//        //MLArray fbexecutor = matfilereader.getMLArray("fbexecutor");
+//        MLDouble mlfbexecutor = (MLDouble)matfilereader.getMLArray("fbexecutor");
+//        //double[][] fbexecutor = mlfbexecutor.getArray();
+//        //fbexecutor.
+//        for(int i=0;i<mlfbexecutor.getSize();i++)
+//        {
+//            double drank=mlfbexecutor.get(i);
+//            int rank=(int)drank;
+//            
+//            Statement stat1=conn.createStatement();
+//            String q1="select name from fb_hostlist where id='"+rank+"';";
+//            ResultSet rs1=stat1.executeQuery(q1);
+//            rs1.next();
+//            String userid=rs1.getString(1);
+//            rs1.close();
+//            stat1.close();
+//            
+//            
+//            String q2="select count(distinct microblogId,publishTime) from tb_search where userId='"+userid+"';";
+//            Statement stat2=conn.createStatement();
+//            ResultSet rs2 = stat2.executeQuery(q2);
+//            rs2.next();
+//            int ptcnt=rs2.getInt(1);
+//            rs2.close();
+//            stat2.close();
+//            
+//            long[] ptimearray=new long[ptcnt];
+//            String q3="select distinct microblogId,publishTime from tb_search where userId='"+userid+"';";
+//            Statement stat3=conn.createStatement();
+//            ResultSet rs3 = stat3.executeQuery(q3);
+//            int k=0;
+//            while(rs3.next())
+//            {
+//                
+//                String tmp = rs3.getString(2);
+//                Timestamp t = Timestamp.valueOf(tmp);
+//                ptimearray[k]=t.getTime()/1000;
+//                k++;
+//            }
+//            
+//            
+//            
+//        }
+//        
+//    }
+    
+    public static void testUrls() throws IOException, SQLException
+    {
+        Connection conn = conpool.getConnection();
+        String q1 = "select count(*) from tb_search_ht where Url is not null and Url <> '' and mbloginfoId>7720;";
+        Statement stat1 = conn.createStatement();
+        ResultSet rs1 = stat1.executeQuery(q1);
+        rs1.next();
+        int count = rs1.getInt(1);
+        
+        rs1.close();
+        stat1.close();
+        
+        int pos=0;
+        
+        String q4="select position from tb_position where name='url';";
+        Statement stat4 = conn.createStatement();
+        ResultSet rs4 = stat4.executeQuery(q4);
+        rs4.next();
+        int fid = rs4.getInt(1);
+        rs4.close();
+        stat4.close();
+        
+        while(pos<count)
+        {
+            
+            System.out.println("pos:"+pos);
+            int limit = 10000;
+            if(pos+10000>count)
+            {
+                limit = count-pos;
+            }
+            Statement stat2 = conn.createStatement();
+            String query2 = "select mbloginfoId,Url from tb_search_ht where Url is not null and Url <> '' and mbloginfoid > '"+fid+"' limit "+limit+" offset "+pos+";";
+            ResultSet rs2 = stat2.executeQuery(query2);
+        
+            //WebRuquest.getGetResponse(url, null, null,null);
+            //AchieveWebContentUtil.getURLBodyBytes(Url, getCookie(),1);
+            while(rs2.next())
+            {
+                int id = rs2.getInt(1);
+                String turl = rs2.getString(2);
+                
+                System.out.println(id);
+                
+                try{
+
+                    URL url = new URL(turl);
+    //                HttpURLConnection connection = (HttpURLConnection)url.openConnection();
+    //                connection.setRequestMethod("GET");
+    //                connection.connect();
+    //
+    //                int code = connection.getResponseCode();
+    //                System.out.println(code);
+
+
+                    //URL url = new URL("http://t.co/rVMDt0Rc");
+                    System.out.println("line:171");
+                    URLConnection con = url.openConnection();
+                     System.out.println("line:173");
+                    InputStream in = con.getInputStream();
+                    String encoding = con.getContentEncoding();
+                    encoding = encoding == null ? "UTF-8" : encoding;
+                    //String body = IOUtils.toString(in, encoding);
+
+                    System.out.println("line:179");
+                    InputStreamReader is = new InputStreamReader(in);
+                    StringBuilder sb=new StringBuilder();
+                    BufferedReader br = new BufferedReader(is);
+                    String read = br.readLine();
+                     System.out.println("line:183");
+
+                    while(read != null) {
+                        //System.out.println(read);
+                        sb.append(read);
+                        read =br.readLine();
+
+                    }
+                    
+                     System.out.println("line:192");
+                    if(sb!=null)
+                    {
+                        String body=sb.toString();
+
+                         if(body.contains("This link has been flagged as potentially harmful."))
+                        {
+                            System.out.println(id+": Suspended");
+
+                            Statement stat3 = conn.createStatement();
+                            String q3 = "update tb_search_ht set Urlsuspend = 1 where mbloginfoId = '"+id+"';";   
+                            stat3.execute(q3);
+                            stat3.close();
+                        }
+                     
+                    }
+                     
+                    String q5="update tb_position set position='"+id+"' where name='url';";
+                    Statement stat5 = conn.createStatement();
+                    stat5.execute(q5);
+                    stat5.close();
+                    
+                }catch(Exception e)
+                {
+                    System.out.println(e);
+                }
+
+                //File_Write("/Users/zhangyubao/Documents/tmp.txt",body);
+               
+                
+
+            }
+            rs2.close();
+            stat2.close();
+            
+            pos=pos+10000;
+        }
+        return;
+    }
+    
+    public static void getMatrixfromDB() throws SQLException
+    {
+        
+        List<String> host_list = new ArrayList<String>();
+        
+        Connection conn = conpool.getConnection();
+        Statement stat3 = conn.createStatement();
+        String query3 = "select count(*) from ff_mentionnet";
+        ResultSet rs3 = stat3.executeQuery(query3);
+        rs3.next();
+        int count2 = rs3.getInt(1);
+        rs3.close();
+        stat3.close();
+
+        int pos2=0;
+        
+        while(pos2<count2)
+        {
+            System.out.println("search:"+pos2);
+            int limit = 10000;
+            if(pos2+10000>count2)
+            {
+                limit = count2-pos2;
+            }
+            Statement stat2 = conn.createStatement();
+            String query2 = "select id,Fromer,Receiver from ff_mentionnet limit "+limit+" offset "+pos2+";";
+            ResultSet rs2 = stat2.executeQuery(query2);
+            
+            String from1 = "";
+            String to1 = "";
+            
+            while(rs2.next())
+            {
+                int id = rs2.getInt(1);
+                String from = rs2.getString(2);
+                String to = rs2.getString(3);
+                
+                /////////////////if duplicate////////////
+                if(from1.equals(to) && to1.equals(from))
+                {
+                    Statement stat1 = conn.createStatement();
+                    String query1 = "delete from ff_mentionnet where id = '"+id+"';";
+                    stat1.execute(query1);
+                    
+                    stat1.close();
+                    
+                    continue;
+                }
+                
+                
+                ////////////////create host list//////////
+                if(!host_list.contains(from))
+                {
+                    host_list.add(from);
+                }
+                
+                if(!host_list.contains(to))
+                {
+                    host_list.add(to);
+                }
+                
+                
+                //////////////generate matrix/////////////
+                String row = host_list.indexOf(from) +" "+host_list.indexOf(to)+" 1\n";
+                File_Write("/Users/zhangyubao/Documents/twitterresult/ff_matrix",row);
+                
+                
+                
+                //////////////////////////////////////////
+                from1 = from;
+                to1=to;
+            }
+            
+            pos2=pos2+10000;
+        }
+        
+        for(int i=0;i<host_list.size();i++)
+        {
+            File_Write("/Users/zhangyubao/Documents/twitterresult/ff_host_list",i+" "+host_list.get(i)+"\n");
+        }
+        
+        
+        conpool.closeConnectionPool();
+        
+        return;
+    }
+    
+    public static void getMentionNetwork() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        Statement stat3 = conn.createStatement();
+        String query3 = "select count(mbloginfoId) "
+//                +"from tb_search where hashtag='teamfollowback'";
+//                    +"from tb_search where hashtag='ipad' or hashtag='iphonegames' or hashtag='10TurnOns' or "
+//                    + "hashtag='android' or hashtag='gameinsight' or hashtag='androidgames' or hashtag='ipadgames';";
+                    + "from tb_search_ht where hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain';";
+        
+                    ResultSet rs3 = stat3.executeQuery(query3);
+            rs3.next();
+            int count2 = rs3.getInt(1);
+            rs3.close();
+            stat3.close();
+            
+            int pos2=0;
+            
+            int mout = 0;
+            int min = 0;
+            int rout = 0;
+            int rin = 0;
+        
+        while(pos2<count2)
+        {
+            System.out.println("search:"+pos2);
+            int limit = 10000;
+            if(pos2+10000>count2)
+            {
+                limit = count2-pos2;
+            }
+            Statement stat2 = conn.createStatement();
+            //String query2 = "select publishTime from tb_search order by publishTime asc limit "+limit+" offset "+pos2+";";
+            String query2 = "select userId,userId_long,publishTime,retweetId,mention1,mention2,mention3,mention4 "
+                    + "from tb_search_ht where hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain' limit "+limit+" offset "+pos2+";";
+//            String query2 = "select userId,userId_long,publishTime,retweetId,mention1,mention2,mention3,mention4  "
+//                    +"from tb_search where hashtag='teamfollowback'"
+//                    + "from tb_search_ht where hashtag='ipad' or hashtag='iphonegames' or hashtag='10TurnOns' or "
+//                    + "hashtag='android' or hashtag='gameinsight' or hashtag='androidgames' or hashtag='ipadgames'"
+//                    + " limit "+limit+" offset "+pos2+";";
+            ResultSet rs2 = stat2.executeQuery(query2);
+            while(rs2.next())
+            {
+                String uid = rs2.getString("userId");
+                String lid = rs2.getString("userId_long");
+                Timestamp t = rs2.getTimestamp("publishTime");
+                String rid = rs2.getString("retweetId");
+                String m1 = rs2.getString("mention1");
+                String m2 = rs2.getString("mention2");
+                String m3 = rs2.getString("mention3");
+                
+                ///////////RETWEET ID//////////
+                
+                if(rid != null && !rid.isEmpty() && !rid.equals("-1") && !rid.contains(" ") && !rid.contains("\n"))
+                {
+                    //Connection conn1 = conpool.;
+                    
+                    Statement stat1 = conn.createStatement();
+                    String q = "select * from tb_search_users where userId = '"+rid+"';";
+                    ResultSet rs = stat1.executeQuery(q);
+
+
+                    if(rs.next())
+                    {
+                        rin++;
+                    }else
+                    {
+                        rout++;
+                    }
+                    
+                    rs.close();
+                    stat1.close();
+                    //conn1.close();
+
+                    
+                    String row = rid+","+uid+","+t+"\n";
+                    File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                }
+                
+                ///////////MENTION ID//////////
+                if( m1!=null && !m1.equals("0") && !m1.isEmpty())
+                {
+                    if(isNumeric(m1))
+                    {
+                        //Connection conn1 = conpool.getConnection();
+                        Statement stat1 = conn.createStatement();
+                        String q = "select userId from tb_search_users where userId_long = '"+m1+"';";
+                        ResultSet rs = stat1.executeQuery(q);
+                        
+                        
+                        if(rs.next())
+                        {
+                            String mid = rs.getString(1);
+                            if(mid!=null && mid.isEmpty())
+                            {
+                                String row = uid+","+mid+","+t+"\n";
+                                File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                                min++;
+                            }
+                        }else
+                        {
+                            String row = uid+","+m1+","+t+"\n";
+                            File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                            mout++;
+                        }
+                        
+                        rs.close();
+                        stat1.close();
+                        //conn1.close();
+                    }else
+                    {
+                        String row = uid+","+m1+","+t+"\n";
+                        File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                    }
+                }
+                
+                ////////////// M1 /////////////
+                
+                if(m2 != null && !m2.equals("0") &&  !m2.isEmpty())
+                {
+                    if(isNumeric(m2))
+                    {
+                        //Connection conn1 = conpool.getConnection();
+                        Statement stat1 = conn.createStatement();
+                        String q = "select userId from tb_search_users where userId_long = '"+m2+"';";
+                        ResultSet rs = stat1.executeQuery(q);
+                        if(rs.next())
+                        {
+                            String mid = rs.getString(1);
+                            if(mid !=null && mid.isEmpty())
+                            {
+                                String row = uid+","+mid+","+t+"\n";
+                                File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                                min++;
+                            }
+                        }else
+                        {
+                            String row = uid+","+m2+","+t+"\n";
+                            File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                            mout++;
+                        }
+                        
+                        rs.close();
+                        stat1.close();
+                        //conn1.close();
+                    }else
+                    {
+                        String row = uid+","+m2+","+t+"\n";
+                        File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                    }
+                }
+                
+                ////////////// M2 /////////////
+                
+                if(m3!=null && !m3.equals("0") && !m3.isEmpty())
+                {
+                    if(isNumeric(m3))
+                    {
+                        //Connection conn1 = conpool.getConnection();
+                        Statement stat1 = conn.createStatement();
+                        String q = "select userId from tb_search_users where userId_long = '"+m3+"';";
+                        ResultSet rs = stat1.executeQuery(q);
+                        if(rs.next())
+                        {
+                            String mid = rs.getString(1);
+                            if(mid!=null && mid.isEmpty())
+                            {
+                                String row = uid+","+mid+","+t+"\n";
+                                File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                                min++;
+                            }
+                        }else
+                        {
+                            String row = uid+","+m3+","+t+"\n";
+                            File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                            mout++;
+                        }
+                        
+                        rs.close();
+                        stat1.close();
+                        //conn1.close();
+                    }else
+                    {
+                        String row = uid+","+m3+","+t+"\n";
+                        File_Write("/Users/zhangyubao/Documents/twitterresult/mtcascade.txt",row);
+                    }
+                }
+                
+                ////////////// M3 /////////////
+                
+            }
+            rs2.close();
+            stat2.close();
+            
+            pos2 = pos2+10000;
+        }
+        
+        conpool.closeConnectionPool();
+        
+        String info = "mout "+mout+"\n";
+        info = info+ "min "+min+"\n";
+        info = info+ "rout "+rout+"\n";
+        info = info+ "rin "+rin+"\n";
+        //File_Write("/Users/zhangyubao/Documents/twitterresult/ff_rw_mt_info",info);  ///  
+        
+        return;
+    }
+   
+    
+    public static boolean isNumeric(String str)  
+    {  
+      try  
+      {  
+        double d = Double.parseDouble(str);  
+      }  
+      catch(NumberFormatException nfe)  
+      {  
+        return false;  
+      }  
+      return true;  
+    }
+    
+    public static void findUsers() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+        Statement stat = conn.createStatement();
+        String q = "select count(*) from tb_tmp";
+        
+        ResultSet rs = stat.executeQuery(q);
+        rs.next();
+        int count = rs.getInt(1);
+        int pos = 33004;
+        while(pos<count)
+        {
+            int limit = 1;
+            if(pos+1>count)
+            {
+                limit = count-pos;
+            }
+            
+            String q2 = "select userId from tb_tmp limit "+limit +" offset "+pos+";";
+            Statement stat2 = conn.createStatement();
+            ResultSet rs2 = stat2.executeQuery(q2);
+            rs2.next();
+            String uid = rs2.getString(1);
+            rs2.close();
+            stat2.close();
+                    
+        
+            Statement stat1 = conn.createStatement();
+
+            String q1 = "select id from tb_search_users where userId ='"+uid+"';";
+
+            ResultSet rs1 = stat1.executeQuery(q1);
+
+            while(rs1.next())
+            {
+                int id = rs1.getInt(1);
+                try{
+                    System.out.println(id);
+                        Statement stat3 = conn.createStatement();
+                        String q3 = "update tb_search_users set getFriend=0 where id ='"+id+"';";
+                        stat3.execute(q3);
+
+                         stat3.close();
+                    }catch(Exception e)
+                    {}
+            }
+            rs1.close();
+            stat1.close();
+            
+            pos=pos+1;
+        }
+        
+        conn.close();
+    }
+    
+    public static void queryUrlMention() throws FileNotFoundException, IOException, SQLException
+    {
+        Connection conn = conpool.getConnection();
+        File followback = new File("/Users/zhangyubao/Documents/twitterresult/ipadtopics");
+        //StringBuilder fb_sb = new StringBuilder(followback);
+        FileReader fb_fr = new FileReader(followback);
+        BufferedReader fb_br = new BufferedReader(fb_fr);
+        String line = null;
+        String query1 = "select * from tb_search where ";
+        while((line=fb_br.readLine())!=null)
+        {
+            int with = 0;
+            int with1 = 0;
+            int with2 = 0;
+            int with3 = 0;
+            int total = 0;
+            double rate = 0;
+            line = line.substring(1, line.length()-1);
+            String q1="select count(*) from tb_search_ht where `Url` is not null and Url <> '' and hashtag='"+line+"';";
+            String q3="select count(*) from tb_search_ht where `mention2` is not null and mention2 <> 0 and mention2 <> '' and hashtag='"+line+"';";
+            String q4="select count(*) from tb_search_ht where `mention3` is not null and mention3 <> 0 and mention3 <> '' and hashtag='"+line+"';";
+            String q2="select count(*) from tb_search_ht where hashtag='"+line+"';";
+            Statement stat1=conn.createStatement();
+            ResultSet rs1 = stat1.executeQuery(q1);
+            rs1.next();
+            with1 = rs1.getInt(1);
+            rs1.close();
+            stat1.close();
+            
+//            Statement stat3=conn.createStatement();
+//            ResultSet rs3 = stat3.executeQuery(q3);
+//            rs3.next();
+//            with2 = rs3.getInt(1);
+//            rs3.close();
+//            stat1.close();
+//            
+//            Statement stat4=conn.createStatement();
+//            ResultSet rs4 = stat4.executeQuery(q4);
+//            rs4.next();
+//            with3 = rs4.getInt(1);
+//            rs4.close();
+//            stat1.close();
+            
+            Statement stat2=conn.createStatement();
+            ResultSet rs2 = stat2.executeQuery(q2);
+            rs2.next();
+            total = rs2.getInt(1);
+            rs2.close();
+            stat2.close();
+            
+            with = with1 +with2+with3;
+            
+            rate = (double)with/total;
+            
+            System.out.println(line +"   "+with+"    "+total+"    "+rate);
+            
+        }
+    }
+    
+    public static void getQuerySearch() throws FileNotFoundException, IOException
+    {
+        File followback = new File("/Users/zhangyubao/Documents/twitterresult/followbacktopics");
+        //StringBuilder fb_sb = new StringBuilder(followback);
+        FileReader fb_fr = new FileReader(followback);
+        BufferedReader fb_br = new BufferedReader(fb_fr);
+        String line = null;
+        String query1 = "select * from tb_search where ";
+        while((line=fb_br.readLine())!=null)
+        {
+            String tmp = "hashtag='";
+            line = line.substring(1, line.length()-1);
+            tmp = tmp+line+"' or ";
+            query1 = query1+tmp;
+        }
+        query1=query1.substring(0, query1.length()-4);
+        query1 = query1+";";
+        
+        File ipad = new File("/Users/zhangyubao/Documents/twitterresult/ipadtopics");
+        //StringBuilder fb_sb = new StringBuilder(followback);
+        FileReader ip_fr = new FileReader(ipad);
+        BufferedReader ip_br = new BufferedReader(ip_fr);
+        String line1 = null;
+        String query2 = "select * from tb_search where ";
+        while((line1=ip_br.readLine())!=null)
+        {
+            String tmp = "hashtag='";
+            line1 = line1.substring(1, line1.length()-1);
+            tmp = tmp+line1+"' or ";
+            query2 = query2+tmp;
+        }
+        query2=query2.substring(0, query2.length()-4);
+        query2 = query2+";";
+        System.out.println(query1);
+        System.out.println(query2);
+    }
+    
+    public static void gettbtrendpos() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+        GregorianCalendar myGcalEarliest = new GregorianCalendar(); 
+        GregorianCalendar myGcalLatest = new GregorianCalendar(); 
+        myGcalEarliest.set(2013, Calendar.JANUARY, 28,16,30,0);
+        myGcalLatest.set(2013, Calendar.FEBRUARY, 19,23,36,0);
+        long basetime = myGcalEarliest.getTimeInMillis();
+        
+        Statement stat1 = conn.createStatement();
+        String q1 = "select distinct t_name, t_type from tb_trend where t_name not like '%?%';";
+        ResultSet rs1 = stat1.executeQuery(q1);
+        while(rs1.next())
+        {
+            String tname = rs1.getString(1);
+            String type = rs1.getString(2);
+            //
+            
+            ////////////////////////handling each record of tb_trend//////////////////////
+            Statement stat2 = conn.createStatement();
+            String q2 = "select t_inserttime from tb_trend where t_name = '"+tname+"' and t_type = '"+type+"' order by t_inserttime asc;";
+            ResultSet rs2 = stat2.executeQuery(q2);
+            while(rs2.next())
+            {
+                Timestamp time = rs2.getTimestamp(1);
+                Timestamp normaltime = getNormalTime(basetime,time);
+                
+                try{
+                    Statement stat3 = conn.createStatement();
+                    String q3 = "insert into tb_trend_pos(t_name,t_type,t_inserttime) values('"+tname+"', '"+type+"','"+normaltime+"');";
+                    stat3.execute(q3);
+                
+                     stat3.close();
+                }catch(Exception e)
+                {}
+            }
+            
+            rs2.close();
+            stat2.close();
+            
+        }
+        
+        rs1.close();
+        stat1.close();
+    }
+    
+    public static Timestamp getNormalTime(long base, Timestamp t)
+    {
+        Timestamp nt = new Timestamp(0);
+        
+        long lt = t.getTime();
+        long lnt=(long) 0;
+        
+        lnt = lt - (lt-base)%(30*60*1000);
+        nt.setTime(lnt);
+        
+        return nt;
+    }
+    
+    public static void NormalUrlHashtag() throws SQLException
+    {
+        Connection conn = conpool.getConnection();
+        Statement stat1 = conn.createStatement();
+        String q1 = "select count(mbloginfoId) from tb_search_ht";
+        
+        ResultSet rs1 = stat1.executeQuery(q1);
+        rs1.next();
+        int count = rs1.getInt(1);
+        int pos = 0;
+        while(pos<count)
+        {
+            String q4="";
+            if(pos+10000<count)
+            {
+                q4 = "select mbloginfoId, content, Url, hashtag from tb_search_ht limit 10000 offset "+pos;
+            }else
+            {
+                q4 = "select mbloginfoId, content, Url, hashtag from tb_search_ht limit "+(count-pos)+" offset "+pos;
+            }
+            Statement stat4 = conn.createStatement();
+            ResultSet rs = stat4.executeQuery(q4);
+
+            while(rs.next())
+            {
+                int id = rs.getInt(1);
+                String c = rs.getString(2);
+                String u = rs.getString(3);
+                String h = rs.getString(4);
+
+                ////////////////////////////hashtag///////////////////////////////
+//                if(h.startsWith("#"))
+//                {
+//                    String ht = h.substring(1, h.length());
+//                    try{
+//                        System.out.println(id +"   "+h+"  -  "+ht);
+//                        Statement stat2 = conn.createStatement();
+//                        String q2 = "update tb_search set hashtag ='"+ht+"' where mbloginfoId ='"+id+"';";
+//                        stat2.execute(q2);
+//                        stat2.close();
+//                    }catch(Exception e)
+//                    {}
+//
+//                }
+                
+                
+                ////////////////////////////////retweet/////////////////////////////////
+                System.out.println(id);
+                if(c.startsWith("RT @") || c.startsWith("rt @")||c.startsWith("RETWEET @")||c.startsWith("retweet @"))
+                {
+                    String rtfrom = "";
+                    String[] tmp = c.split(":",2);
+                    rtfrom = tmp[0];
+                    rtfrom = rtfrom.substring(4, rtfrom.length());
+                    try{
+                           
+                            Statement stat3 = conn.createStatement();
+                            String q3 = "update tb_search_ht set retweetId='"+rtfrom+"' where mbloginfoId='"+id+"';";
+                            stat3.execute(q3);
+                            stat3.close();
+                        }catch(Exception e)
+                        {}
+                    
+                }
+                
+                
+                
+                
+
+                /////////////////////////////////Url//////////////////////////////
+                if(c.contains("http://")||true)
+                {
+                    String url = "";
+                    String tmpht = "";
+                    String tmp = "";
+                    
+                    StringTokenizer tokens = new StringTokenizer(c, " ");
+                    
+                    while(tokens.hasMoreTokens())
+                    {
+                        tmp=tokens.nextToken();
+                        if(tmp.startsWith("http://"))
+                        {
+                            url = tmp;
+                            //break;
+                        }else if(tmp.startsWith("#"))
+                        {
+                            if(tmpht=="")
+                            {
+                                tmpht = tmp.substring(1,tmp.length());
+                            }else{
+                                tmpht = tmpht+","+tmp.substring(1,tmp.length());
+                            }
+                            
+                        }else
+                        {
+                            
+                        }
+                        
+                    }
+                    
+                        try{
+                            System.out.println(url);
+                            Statement stat3 = conn.createStatement();
+                            String q3 = "update tb_search_ht set Url='"+url+"', transedContent='"+tmpht+"' where mbloginfoId='"+id+"';";
+                            stat3.execute(q3);
+                            stat3.close();
+                        }catch(Exception e)
+                        {}
+                }
+
+            }
+            rs.close();
+            stat4.close();
+            pos = pos +10000;
+        }
+        
+        stat1.close();
+        System.out.println("Over!!!!!!!");
+        
+    }
+    
+    public static void trend_time_array() throws FileNotFoundException, IOException, SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+        //Timestamp tealriest;
+        long ealriest;
+        long latest;
+        long unit = 60*60*1000;
+        int topicnum = 76*3;
+        
+        GregorianCalendar myGcalEarliest = new GregorianCalendar(); 
+        GregorianCalendar myGcalLatest = new GregorianCalendar(); 
+        myGcalEarliest.set(2013, Calendar.JANUARY, 28,16,0,0);
+        myGcalLatest.set(2013, Calendar.FEBRUARY, 19,23,30,0);
+        ealriest = myGcalEarliest.getTimeInMillis();
+        latest = myGcalLatest.getTimeInMillis();
+        
+        int mc = (int)Math.floor((double)(latest-ealriest)/unit);
+        int[][] matrix = new int[topicnum][mc];
+        for(int k1=0;k1<topicnum;k1++)
+            for(int k2=0;k2<mc;k2++)
+                matrix[k1][k2]=0;
+        File file = new File("/Users/zhangyubao/Documents/twitterresult/particularht.csv");
+        
+        FileReader fr = new FileReader(file);
+            //FileInputStream in = new FileInputStream(file);
+        BufferedReader rin = new BufferedReader(fr);
+        String line="";
+        int topic_index = 0;
+        while((line = rin.readLine()) != null)
+        {
+            
+            line = line.substring(1,line.length()-1);
+            
+            /////////////////got the query hashtag/////////////////
+            
+            
+            /////////////////get trend time//////////////////////
+            if(line!="")//line.matches("ipad")
+            {
+                Statement stat4 = conn.createStatement();
+                String query4 = "select t_inserttime from tb_trend_pos where t_name = '"+line+"' and t_type='Trend';";
+                ResultSet rs4 = stat4.executeQuery(query4);
+                while(rs4.next())
+                {
+                    Timestamp init= rs4.getTimestamp(1);
+                    //Timestamp end = rs4.getTimestamp(2);
+                    long l1 = init.getTime();
+                    //long l2 = end.getTime();
+                    int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+                    //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+//                    if(pos2>mc)
+//                    {
+//                        System.out.println(end);
+//                    }
+//                    for(int i=pos1;i<=pos2;i++)
+//                    {
+                        matrix[topic_index][pos1]=4;
+//                    }
+                }
+                rs4.close();
+                stat4.close();
+                
+                topic_index++;
+            }
+            
+            ///////////////////////////////////////////////////////
+            
+            /////////////////get sample1 time//////////////////////
+            Statement stat1 = conn.createStatement();
+            String query1 = "select t_inserttime from tb_trend_pos where t_name = '"+line+"' and (t_type='Sample1' or t_type='Sample');";
+            ResultSet rs1 = stat1.executeQuery(query1);
+            while(rs1.next())
+            {
+                Timestamp init= rs1.getTimestamp(1);
+                //Timestamp end = rs1.getTimestamp(2);
+                long l1 = init.getTime();
+                //long l2 = end.getTime();
+                int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+                //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+//                if(pos2>mc)
+//                {
+//                    System.out.println(end);
+//                }
+//                for(int i=pos1;i<=pos2;i++)
+//                {
+                 matrix[topic_index][pos1]=1;
+//                }
+            }
+            rs1.close();
+            stat1.close();
+            
+            /////////////////get sample2 time//////////////////////
+            Statement stat2 = conn.createStatement();
+            String query2 = "select t_inserttime from tb_trend_pos where t_name = '"+line+"' and t_type='Sample2';";
+            ResultSet rs2 = stat2.executeQuery(query2);
+            while(rs2.next())
+            {
+                Timestamp init= rs2.getTimestamp(1);
+                //Timestamp end = rs2.getTimestamp(2);
+                long l1 = init.getTime();
+                //long l2 = end.getTime();
+                int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+                //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+//                if(pos2>mc)
+//                {
+//                    System.out.println(end);
+//                }
+//                for(int i=pos1;i<=pos2;i++)
+//                {
+                 matrix[topic_index][pos1]=2;
+//                }
+            }
+            rs2.close();
+            stat2.close();
+            
+            /////////////////get sample3 time//////////////////////
+            Statement stat3 = conn.createStatement();
+            String query3 = "select t_inserttime from tb_trend_pos where t_name = '"+line+"' and t_type='Sample3';";
+            ResultSet rs3 = stat3.executeQuery(query3);
+            while(rs3.next())
+            {
+                Timestamp init= rs3.getTimestamp(1);
+                //Timestamp end = rs3.getTimestamp(2);
+                long l1 = init.getTime();
+                //long l2 = end.getTime();
+                int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+                //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+//                if(pos2>mc)
+//                {
+//                    System.out.println(end);
+////                }
+//                for(int i=pos1;i<=pos2;i++)
+//                {
+                    matrix[topic_index][pos1]=3;
+//                }
+            }
+            rs3.close();
+            stat3.close();
+            
+            ///////////////////////////////////////////////////////
+            
+            topic_index ++;
+            topic_index ++;
+            if(topic_index>=topicnum)
+                break;
+        }
+        for(int j = 0;j<topicnum;j++)
+        {
+            String row = "";
+            for(int i1 = 0;i1 < mc; i1++)
+            {
+                row = row + matrix[j][i1]+" ";
+            }
+             File_Write("/Users/zhangyubao/Documents/twitterresult/particularhtmatrix",row+"\n");
+        }
+       
+        
+    }
+    
+    public static void sample_time_array() throws FileNotFoundException, IOException, SQLException
+    {
+        Connection conn = conpool.getConnection();
+        
+        //Timestamp tealriest;
+        long ealriest;
+        long latest;
+        long unit = 30*60*1000;
+        //int topicnum = 76*3;
+        
+        GregorianCalendar myGcalEarliest = new GregorianCalendar(); 
+        GregorianCalendar myGcalLatest = new GregorianCalendar(); 
+        myGcalEarliest.set(2013, Calendar.JANUARY, 28,16,0,0);
+        myGcalLatest.set(2013, Calendar.FEBRUARY, 19,23,30,0);
+        ealriest = myGcalEarliest.getTimeInMillis();
+        latest = myGcalLatest.getTimeInMillis();
+        
+        int mc = (int)Math.floor((double)(latest-ealriest)/unit);
+        int[] matrix = new int[mc];  //sample and search
+        //for(int k1=0;k1<2;k1++)
+            for(int k2=0;k2<mc;k2++)
+                matrix[k2]=0;
+        
+  
+            
+//            /////////////////get sample time//////////////////////
+//            Statement stat = conn.createStatement();
+//            String query = "select count(publishTime) from tb_sample where publishTime<'2013-02-19 08:00:00';";
+//            ResultSet rs = stat.executeQuery(query);
+//            rs.next();
+//            int count = rs.getInt(1);
+//            rs.close();
+//            stat.close();
+//            
+//            int pos=0;
+//        
+//        while(pos<count)
+//        {
+//            System.out.println("sample:"+pos);
+//            int limit = 10000;
+//            if(pos+10000>count)
+//            {
+//                limit = count-pos;
+//            }
+//            Statement stat1 = conn.createStatement();
+//            String query1 = "select publishTime from tb_sample where publishTime<'2013-02-19 08:00:00' order by publishTime asc limit "+limit+" offset "+pos+";";
+//            ResultSet rs1 = stat1.executeQuery(query1);
+//            while(rs1.next())
+//            {
+//                Timestamp init= rs1.getTimestamp(1);
+//                //Timestamp end = rs1.getTimestamp(2);
+//                long l1 = init.getTime();
+//                //long l2 = end.getTime();
+//                int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+//                //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+////                if(pos2>mc)
+////                {
+////                    System.out.println(end);
+////                }
+////                for(int i=pos1;i<=pos2;i++)
+////                {
+//                 matrix[1][pos1]++;
+////                }
+//            }
+//            rs1.close();
+//            stat1.close();
+//            
+//            pos = pos+10000;
+//        }
+//        
+//        String row1="";
+//      
+//            for(int is = 0;is < mc; is++)
+//            {
+//                row1 = row1 + matrix[1][is]+" ";
+//            }
+//            
+//            File_Write("tmpsamplematrix",row1+"\n");
+            
+            
+                        /////////////////get search time//////////////////////
+        Statement stat3 = conn.createStatement();
+            //String query3 = "select count(publishTime) from tb_sample where publishTime<'2013-02-19 08:00:00';";
+            String query3 = "select count(distinct mbloginfoId) "
+                    +"from tb_search where hashtag='ipad' or hashtag='iphonegames' or hashtag='10TurnOns' or "
+                    + "hashtag='android' or hashtag='gameinsight' or hashtag='androidgames' or hashtag='ipadgames';";
+//                    + "from tb_search where hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+//                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+//                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+//                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+//                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+//                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+//                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+//                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain';";
+            ResultSet rs3 = stat3.executeQuery(query3);
+            rs3.next();
+            int count2 = rs3.getInt(1);
+            rs3.close();
+            stat3.close();
+            
+            int pos2=0;
+        
+        while(pos2<count2)
+        {
+            System.out.println("search:"+pos2);
+            int limit = 10000;
+            if(pos2+10000>count2)
+            {
+                limit = count2-pos2;
+            }
+            Statement stat2 = conn.createStatement();
+            //String query2 = "select publishTime from tb_search order by publishTime asc limit "+limit+" offset "+pos2+";";
+//            String query2 = "select tb.publishTime from (select distinct mbloginfoId,publishTime "
+//                    + "from tb_search where hashtag='Follow' or hashtag='SOUGOFOLLOW' or hashtag='followme' or "
+//                    + "hashtag='TeamFollowBack' or hashtag='TEAMFOLLOWBACK' or hashtag='Followback' or "
+//                    + "hashtag='sougofollow' or hashtag='FollowMe' or hashtag='ff' or hashtag='500ADAY' or "
+//                    + "hashtag='teamfollowback' or hashtag='FollowME' or hashtag='OPENFOLLOW' or hashtag='followback' or "
+//                    + "hashtag='TFBJP' or hashtag='Retweet' or hashtag='500aDay' or hashtag='FF' or hashtag='FollowBackSeguro' "
+//                    + "or hashtag='OpenFollow' or hashtag='followmejp' or hashtag='openfollow' or hashtag='F4F' or hashtag='AutoFollowBack' or "
+//                    + "hashtag='RT2GAIN' or hashtag='FOLLOWBACK' or hashtag='FOLLOW' or hashtag='TFB' or hashtag='TEAMHITFOLLOW' or "
+//                    + "hashtag='RETWEET' or hashtag='90sBabyFollowTrain') as tb order by publishTime asc limit "+limit+" offset "+pos2+";";
+            String query2 = "select tb.publishTime from (select distinct mbloginfoId,publishTime "
+                    + "from tb_search where hashtag='ipad' or hashtag='iphonegames' or hashtag='10TurnOns' or "
+                    + "hashtag='android' or hashtag='gameinsight' or hashtag='androidgames' or hashtag='ipadgames'"
+                    + " ) as tb order by publishTime asc limit "+limit+" offset "+pos2+";";
+            ResultSet rs2 = stat2.executeQuery(query2);
+            while(rs2.next())
+            {
+                Timestamp init= rs2.getTimestamp(1);
+                //Timestamp end = rs1.getTimestamp(2);
+                long l1 = init.getTime();
+                //long l2 = end.getTime();
+                int pos1 = (int)Math.floor((init.getTime() - ealriest)/unit);
+                if(pos1<0 || pos1>= mc)
+                {
+                    continue;
+                }
+                //int pos2 = (int)Math.floor((end.getTime() - ealriest)/unit);
+//                if(pos2>mc)
+//                {
+//                    System.out.println(end);
+//                }
+//                for(int i=pos1;i<=pos2;i++)
+//                {
+                 matrix[pos1]++;
+//                }
+            }
+            rs2.close();
+            stat2.close();
+            
+            pos2 = pos2+10000;
+        }
+            
+//        for(int j = 0;j<2;j++)
+//        {
+            String row = "";
+            for(int i1 = 0;i1 < mc; i1++)
+            {
+               
+                row = row + matrix[i1]+" ";
+            }
+            System.out.println("write");
+             File_Write("/Users/zhangyubao/Documents/twitterresult/ipadevol",row+"\n"); ///    
+        //}
+       
+        return;
+    }
+    
+        public String File_Read(String path)
+    {
+        String content="";
+        try {
+            File file = new File(path);
+            
+            FileReader fr = new FileReader(file);
+            //FileInputStream in = new FileInputStream(file);
+            BufferedReader rin = new BufferedReader(fr);
+
+            StringBuilder data = new StringBuilder(150);
+                String line;
+                while ((line = rin.readLine()) != null)
+                {   
+                    data.append(line);
+                }
+                rin.close();
+                fr.close();
+
+                content = data.toString();
+                
+       } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+       }
+        
+        return content;
+    }
+    
+    public static void trend_time() throws SQLException
+    {
+        Connection conn1 = conpool.getConnection();
+        
+        Statement stat1 = conn1.createStatement();
+        String qry1 = "select t_name,t_type from tb_trend_pos";
+        ResultSet rs1 = stat1.executeQuery(qry1);
+        while(rs1.next())
+        {
+            String name = "";
+            String type = "";
+            name = rs1.getString(1);
+            type = rs1.getString(2);
+            
+            Statement stat2 = conn1.createStatement();
+            String qry2 = "select min(t_inserttime),max(t_inserttime) from tb_trend where t_name='"+name+"' and t_type='"+type+"';";// and t_inserttime > '2013-02-05 00:00:00'
+            ResultSet rs2 = stat2.executeQuery(qry2);
+            
+            rs2.next();
+            String t1;
+            String t2;
+            t1=rs2.getString(1);
+            t2=rs2.getString(2);
+            
+            rs2.close(); stat2.close();
+            
+            Statement stat3 = conn1.createStatement();
+            String qry3 = "update tb_trend_pos set t_init_time = '"+t1+"',t_end_time='"+t2+"' where t_name='"+name+"' and t_type='"+type+"';";
+            stat3.execute(qry3);
+            stat3.close();
+            
+        }
+        rs1.close();
+        stat1.close();
+    }
+    
+    public static class search2DB implements Runnable {
+        
+        search2DB()
+        {}
+        
+        public void run(){
+        try {
+
+            Connection conn_search = conpool.getConnection();
+
+             Statement pos_state_search = conn_search.createStatement();
+             String possql1 = "select processpos from tb_position where name = 'searchfilenum3';";
+             ResultSet pos_set_search = pos_state_search.executeQuery(possql1);
+             pos_set_search.next();
+             
+             
+             int fn1 = pos_set_search.getInt(1);
+             
+             pos_set_search.close();
+             pos_state_search.close();
+
+             //String path1 = "/home/xiaobao/twitter/out_dist_cs/bufferfrom107/search"+fn1+".txt";
+             String path1="/home/zack/project/out_dist_cs/buffer107/search"+fn1+".txt";
+             
+             File file1 = new File(path1);
+             
+             while(file1.exists())
+             {
+                 file1 = null;
+                 //////////////////////////////////////////////
+                 
+                 System.out.println("Processing search"+fn1+".txt");
+                 
+                 FileChannel fc1 = new FileInputStream(path1).getChannel();
+                 bb_search = ByteBuffer.allocate((int) fc1.size());
+                 fc1.read(bb_search);
+                 
+                 byte[] bbarray1 = bb_search.array();
+                 String content1 = new String(bbarray1);
+                 //System.out.println(content);
+                 
+                 StringTokenizer tokens1 = new StringTokenizer(content1, "{}{}{}"); 
+                 
+                for(int i=0;i<tokens1.countTokens();i++)
+                {
+                    if(i%1000==0)
+                    {
+                        System.out.println("Processing search"+fn1+".txt : "+i+"st sql.......");
+                    }
+                    
+                    String tmp = tokens1.nextToken();
+                    if(tmp!="" && tmp.startsWith("("))
+                    {
+                        //tmp.replace("'", "|");   // replace ' --->  |
+                        //tmp.replace("\\", "|"); 
+                        try{
+                            Statement statementAdd = conn_search.createStatement();
+                            tmp = tmp.replaceAll("[\n-\r]", "").replaceAll("\\s+"," ");
+                            String insert_topic="INSERT into tb_search(microblogid,userid,content,publishTime,followcount,"
+                              + "friendcount,tweetcount,userId_long,mention1,mention2,mention3,Url,hashtag1,hashtag2)VALUES"+tmp;
+                            //String insert_topic = "INSERT into tb_search(microblogid,userid,content,publishTime,transmitNum,userId_long,hashtag,mention1,mention2,mention3,Url,replyto)VALUES"+tmp;
+                            //System.out.println("insert into tb_hashtag(hashtag) values ('" + tmp +"')");
+                            statementAdd.execute(insert_topic);
+
+                            statementAdd.close();
+                        }catch(Exception e)
+                        {
+                            System.out.println("Error when insert search"+fn1+".txt : "+i+"st sql.......");
+                        }
+                        
+                    }
+                    
+                    
+                    /////////////////////////////////////////////////
+                    Statement update_pos_state = conn_search.createStatement();
+                    String updatepossql = "update tb_position set processpos= "+fn1+" where name = 'searchfilenum3';";
+                    update_pos_state.execute(updatepossql);
+
+                    update_pos_state.close();
+                    /////////////////////////////////////////////////
+                }
+                 
+                 fc1.close();
+                 
+                 
+                 //////////////////////////////////////////////
+                 fn1++;
+                 path1 = "/home/xiaobao/twitter/out_dist_cs/bufferfrom107/search"+fn1+".txt";
+                 //file1.delete();
+                 
+                 file1 = null;
+                 file1 = new File(path1);
+             }
+             
+             
+           
+             conpool.returnConnection(conn_search);
+            } catch (Exception e) {
+                //e.printStackTrace();
+                System.out.println( e.getMessage());
+                //System.exit(-1);
+            }
+    }
+    
+    }
+    
+    public static void  processTrend() throws SQLException
+    {
+        Connection connection = conpool.getConnection();
+        Statement trend_state = connection.createStatement();
+        String sql1 = "select * from tb_trend;";
+        ResultSet rs = trend_state.executeQuery(sql1);
+        //to lower case and delete #
+        while(rs.next())
+        {
+            int id = rs.getInt(1);
+            String tname = rs.getString(2);
+            tname = tname.toLowerCase();
+            
+            if(tname.startsWith("#"))
+            {
+                tname = tname.substring(1,tname.length());
+            }
+            Statement statesharp = connection.createStatement();
+            String sql2 = "update tb_trend set t_name ='"+tname+ "' where id = '"+id+"';";
+            statesharp.execute(sql2);
+            statesharp.close();
+
+        }
+        
+//        trend_state.close();
+//        
+//        Statement simple_state = connection.createStatement();
+//        String sql3 = "select t_name,t_type,t_inserttime from tb_trend";
+//        ResultSet rs1 = trend_state.executeQuery(sql3);
+//        
+//        while(rs1.next())
+//        {
+//            
+//        }
+        
+    }
+    
+    //public static class Sample2DB implements Runnable {
+       static Runnable Sample2DBRun = new Runnable() {
+        
+
+        
+    public void run()
+    {
+        try {
+
+            Connection connection = conpool.getConnection();
+            ////////////////////////////////////////
+            /*Class.forName("com.mysql.jdbc.Driver").newInstance();
+            Connection connection=DriverManager.getConnection(url);*/
+            //Statement statement = connection.createStatement();
+            
+            
+            ////////////////////////////GET SAMPLE TIME/////////////////////////////////
+//            Statement statement_time = connection.createStatement();
+//             //System.out.println("@" + status.getUser().getScreenName() + " - " + status.getText());
+//             String q_time = "select publishtime from tb_sample;";
+//             ResultSet timeset = statement_time.executeQuery(q_time);
+//             
+//             String filepath = "/Users/zhangyubao/Documents/workspace/Mytwitter/sampletime.txt";
+//             
+//             File file = new File(filepath);
+//            file.delete();
+//
+//            FileWriter fileWriter=new FileWriter(filepath);
+//
+//             while(timeset.next())
+//             {
+//                 String time = timeset.getString(1);
+//                 time = time + "\n";
+//                 
+//                 fileWriter.append(time);
+//             }
+//             
+//             fileWriter.flush();
+//             fileWriter.close();
+//
+//             statement_time.close();
+             
+              
+             
+             while(true)
+             {
+                 Statement pos_state = connection.createStatement();
+                String possql = "select processpos from tb_position where name = 'usasamplefilenum';";
+                ResultSet pos_set = pos_state.executeQuery(possql);
+                pos_set.next();
+
+
+                int fn = pos_set.getInt(1);
+
+                pos_set.close();
+                pos_state.close();
+
+                //String path = "/home/xiaobao/twitter/out_dist_cs/buffer1/usasample"+fn+".txt";
+                //String path = "/home/xiaobao/twitter/out_dist_cs/buffer_trend/usasample"+fn+".txt";
+                String path="/home/zack/project/Twitter_sample/filefromcs/usasample"+fn+".txt";
+
+                File file = new File(path);
+                
+                
+                fn++;
+                /////////////////////////////////////////////////
+                Statement update_pos_state = connection.createStatement();
+                String updatepossql = "update tb_position set processpos= "+fn+" where name = 'usasamplefilenum';";
+                update_pos_state.execute(updatepossql);
+
+                update_pos_state.close();
+                /////////////////////////////////////////////////
+                    
+                if(!file.exists())
+                {
+                    continue;
+                }
+                 
+                 
+                 //file = null;
+                 //////////////////////////////////////////////
+                 
+                 System.out.println("Processing sample"+fn+".txt");
+                 
+                 FileChannel fc = new FileInputStream(path).getChannel();
+                 bb = ByteBuffer.allocate((int) fc.size());
+                 fc.read(bb);
+                 
+                 byte[] bbarray = bb.array();
+                 String content = new String(bbarray);
+                 //System.out.println(content);
+                 
+                 //String tmp=content.split(, fn);
+                 
+                 StringTokenizer tokens = new StringTokenizer(content, "{}{}{}"); 
+                 
+                for(int i=0;i<tokens.countTokens();i++)
+                {
+                    //System.out.println("Processing sample"+fn+".txt : "+i+"st sql.......");
+                    
+                    String tmp = tokens.nextToken();
+                    if(tmp!="" && tmp.startsWith("(") && !tmp.contains("'','')"))
+                    {
+                        //tmp.replace("'", "|");   // replace ' --->  |
+                        //tmp.replace("\\", "|"); 
+                        
+                        //if()
+                        try{
+                            Statement statementAdd = connection.createStatement();
+                            tmp = tmp.replaceAll("[\n-\r]", "").replaceAll("\\s+"," ").replaceAll("[^\\u0000-\\u00FF]", " ");
+                            
+                            String insert_topic = "INSERT into tb_sample(microblogid,userid,content,publishTime,followcount,"
+                              + "friendcount,tweetcount,userId_long,mention1,mention2,mention3,Url,hashtag1,hashtag2)VALUES"+tmp;
+                            //System.out.println("insert into tb_hashtag(hashtag) values ('" + tmp +"')");
+                            statementAdd.execute(insert_topic);
+
+                            statementAdd.close();
+                        }catch(Exception e)
+                        {
+                            System.out.println("Error when insert sample"+fn+".txt : "+i+"st sql.......");
+                        }
+                        
+                    }
+                    
+                    
+                    
+                }
+                 
+                 fc.close();
+                 
+                 
+                 //////////////////////////////////////////////
+                 
+//                 path = "/home/xiaobao/twitter/out_dist_cs/buffer/sample"+fn+".txt";
+//                 //file.delete();
+//                 
+//                 file = null;
+//                 file = new File(path);
+             }
+             
+             
+           
+             //connection.close();
+            } catch (Exception e) {
+                //e.printStackTrace();
+                System.out.println( e.getMessage());
+                //System.exit(-1);
+            }
+    }
+    };
+       
+    static Runnable Search2DBRun = new Runnable() {
+
+        public void run()
+        {
+            try {
+
+                Connection connection = conpool.getConnection();
+                
+                 while(true)
+                 {
+                     Statement pos_state = connection.createStatement();
+                    String possql = "select processpos from tb_position where name = 'searchfilenum3';";
+                    ResultSet pos_set = pos_state.executeQuery(possql);
+                    pos_set.next();
+
+
+                    int fn = pos_set.getInt(1);
+
+                    pos_set.close();
+                    pos_state.close();
+
+                    String path = "/home/xiaobao/twitter/out_dist_cs/bufferfrom107/search"+fn+".txt";
+                    //String path = "/home/scratch/yzhang01/out_dist_cs/buffer1/search"+fn+".txt";
+                    //String path="/home/zack/project/Twitter_sample/filefromcs/search"+fn+".txt";
+                    
+
+                    File file = new File(path);
+                    System.out.println(file.toString());
+
+                    fn++;
+                    /////////////////////////////////////////////////
+                    Statement update_pos_state = connection.createStatement();
+                    String updatepossql = "update tb_position set processpos= "+fn+" where name = 'searchfilenum3';";
+                    update_pos_state.execute(updatepossql);
+
+                    update_pos_state.close();
+                    /////////////////////////////////////////////////
+
+                    if(!file.exists())
+                    {
+                        System.out.println("file doesn't exist!!!!");
+                        continue;
+                        
+                    }
+
+
+                     //file = null;
+                     //////////////////////////////////////////////
+
+                     System.out.println("Processing sample"+fn+".txt");
+
+                     FileChannel fc = new FileInputStream(path).getChannel();
+                     bb = ByteBuffer.allocate((int) fc.size());
+                     fc.read(bb);
+
+                     byte[] bbarray = bb.array();
+                     String content = new String(bbarray);
+                     //System.out.println(content);
+
+                     StringTokenizer tokens = new StringTokenizer(content, "{}{}{}"); 
+
+                    for(int i=0;i<tokens.countTokens();i++)
+                    {
+                        //System.out.println("Processing sample"+fn+".txt : "+i+"st sql.......");
+
+                        String tmp = tokens.nextToken();
+                        if(tmp!="" && tmp.startsWith("(") && !tmp.contains("'','')"))
+                        {
+                            //tmp.replace("'", "|");   // replace ' --->  |
+                            //tmp.replace("\\", "|"); 
+                            String tmpbyte="";
+                            try{
+                                Statement statementAdd = connection.createStatement();
+                                tmp = tmp.replaceAll("[\n-\r]", "").replaceAll("\\s+"," ").replaceAll("[^\\u0000-\\u00FF]", " ");
+                                
+                              
+                                        //.replaceAll("^[_a-zA-Z0-9@:#]", " ");
+                            
+                                String insert_topic="INSERT into tb_search(microblogid,userid,content,publishTime,followcount,"
+                              + "friendcount,tweetcount,userId_long,mention1,mention2,mention3,Url,hashtag1,hashtag2)VALUES"+tmp;
+                                //System.out.println("insert into tb_hashtag(hashtag) values ('" + tmp +"')");
+                                statementAdd.execute(insert_topic);
+
+                                statementAdd.close();
+                            }catch(Exception e)
+                            {
+                                System.out.println("Error when insert sample"+fn+".txt : "+i+"st sql.......");
+                                //System.out.println("INSERT into tb_search(microblogid,userid,content,publishTime,followcount,"
+                              //+ "friendcount,tweetcount,userId_long,mention1,mention2,mention3,Url,hashtag1,hashtag2)VALUES"+tmp);
+                            }
+
+                        }
+
+
+
+                    }
+
+                     fc.close();
+
+
+                     //////////////////////////////////////////////
+
+    //                 path = "/home/xiaobao/twitter/out_dist_cs/buffer/sample"+fn+".txt";
+    //                 //file.delete();
+    //                 
+    //                 file = null;
+    //                 file = new File(path);
+                 }
+
+
+
+                 //connection.close();
+                } catch (Exception e) {
+                    //e.printStackTrace();
+                    System.out.println( e.getMessage());
+                    //System.exit(-1);
+                }
+        }
+    };
+    
+    public static Session GetDBSSH(int lport)
+    {
+        
+        //ssh remote mysql database
+        //int lport=2022;
+        //int lport = 2022;
+        String rhost="127.0.0.1";
+        //String host="128.239.132.254";
+        String host = "rocco.cs.wm.edu";
+        int rport=3306;
+        String user="wangserv";
+        String password="kvmwang";
+        String dbuserName = "root";
+        String dbpassword = "";
+        String url = "jdbc:mysql://localhost:"+lport+"/twitter";
+        String driverName="com.mysql.jdbc.Driver";
+        java.sql.Connection connection = null;
+        Session session= null;
+        
+        ///////////////////////////////
+        try{
+            java.util.Properties config = new java.util.Properties(); 
+            config.put("StrictHostKeyChecking", "no");
+            JSch jsch = new JSch();
+            //session=jsch.getSession(user, host, 65022);
+            session=jsch.getSession(user, host, 6166);
+            session.setPassword(password);
+            session.setConfig(config);
+            session.connect();
+            System.out.println("Connected");
+            int assinged_port=session.setPortForwardingL(lport, rhost, rport);
+            System.out.println("localhost:"+assinged_port+" -> "+rhost+":"+rport);
+            System.out.println("Port Forwarded");
+            
+            //mysql database connectivity
+       
+            Class.forName(driverName).newInstance();
+            connection = DriverManager.getConnection (url, dbuserName, dbpassword);
+            
+            
+            
+        }catch(Exception e)
+        {
+            e.printStackTrace();
+        }
+        //Session_Connection sc = new Session_Connection(session,connection);
+        
+        return session;
+    }
+    
+    
+     public static void GetTopic()
+    {
+        //////////////////////////////Get topics/////////////////////////////////
+        
+        //ssh remote mysql database
+        int lport=2022;
+        String rhost="127.0.0.1";
+        String host="128.239.132.254";
+        int rport=3306;
+        String user="root";
+        String password="Merri284";
+        String dbuserName = "root";
+        String dbpassword = "";
+        String url = "jdbc:mysql://localhost:"+lport+"/twitter";
+        String driverName="com.mysql.jdbc.Driver";
+        Connection connection = null;
+        Session session= null;
+        ///////////////////////////////
+        
+        //mysql connecting
+        String sql_topic = "";
+        String insert_topic = "";
+        String hashtag = "";
+        int end_position = 0;
+        try{
+            
+            Connection conn_topic = conpool.getConnection();
+            Statement state_topic = conn_topic.createStatement();
+            
+            
+            Statement clear_topic = conn_topic.createStatement();
+            String clear_sql = "truncate table tb_hashtag;";
+
+            try{
+                clear_topic.execute(clear_sql);
+            }catch(Exception e)
+            {
+                System.out.println("Error when truncate table hashtag!!!!!");
+            }
+            
+            clear_topic.close();
+
+            //Statement state_topic_Add = connection.createStatement();
+            
+
+            sql_topic = "select content from tb_sample where content like '%#%';";
+            ResultSet resultset = state_topic.executeQuery(sql_topic);
+            
+            String beginchar = "#";
+
+            while(resultset.next())
+            {
+                hashtag = GetHashtagMentionUrl(resultset.getString(1),beginchar);
+
+                if(hashtag.contains(" ")) 
+                {
+                    //multiple hashtags
+                    StringTokenizer tokens = new StringTokenizer(hashtag, " "); 
+                    for(int i=0;i<tokens.countTokens();i++)
+                    {
+                        Statement state_topic_Add = conn_topic.createStatement();
+                        String tmp = tokens.nextToken();
+                        if(tmp != "" && !tmp.contains("?"))
+                        {   
+                            tmp.replace("'", "|");   // replace ' --->  |
+                            insert_topic = "insert into tb_hashtag(hashtag) values ('" + tmp +"')";
+                            System.out.println("insert into tb_hashtag(hashtag) values ('" + tmp +"')");
+                            state_topic_Add.execute(insert_topic);
+                        }
+                        state_topic_Add.close();
+                    }
+                }else{
+                    Statement state_topic_Add = conn_topic.createStatement();
+                    if(hashtag != "" && !hashtag.contains("?"))
+                    {
+                        hashtag = hashtag.replace("'", "|");   // replace ' --->  |
+                        insert_topic = "insert into tb_hashtag(hashtag) values ( '"+ hashtag +"')";
+                        //System.out.println("insert into tb_hashtag(hashtag) values ( '"+ hashtag +"')");
+                        state_topic_Add.execute(insert_topic);
+                    }
+                    state_topic_Add.close();
+                }
+
+                
+            }
+            state_topic.close();
+            //conn_topic.close();
+            //s.disconnect();
+            
+            
+            
+            conn_topic.close();
+
+        }catch(Exception e)
+        {
+            //e.printStackTrace();
+            System.out.println("Failed to get topic: " + e.getMessage());
+        }
+
+
+        //////////////////////////////Get topics/////////////////////////////////
+    }
+     
+     public static String GetHashtagMentionUrl(String s,String begin)
+    {
+        String ht="";
+        String tmp = "";
+        StringTokenizer tokens = new StringTokenizer(s, " ");
+        for(int i=0;i<tokens.countTokens();i++)
+        {
+            tmp = tokens.nextToken();
+            if(tmp.startsWith(begin))
+            {
+                if(ht != "")
+                {
+                    ht=ht+" "+tmp; //combination of multiple hashtags if they exist
+                }else{
+            
+                    ht = tmp;
+                }
+            }
+        }
+        
+        return ht;
+    }
+     
+     public static void File_Write(String path,String content)
+    {
+        try {
+            File file = new File(path);
+            
+            FileOutputStream out = new FileOutputStream(file,true);  
+            out.write(content.getBytes());
+            out.flush();
+            out.close();
+       } catch (IOException e1) {
+            // TODO Auto-generated catch block
+            e1.printStackTrace();
+       }
+    }
+     
+     
+}
+
+
+//            
+//            //int limit=10000;
+//            int count=0;
+//            Statement stat2=conn.createStatement();
+//            String q2="select count(*) from tb_search where publishTime>'"+t_start+"' and publishTime<='"+t_end+"';";
+//            System.out.println("select count(*) from tb_search where publishTime>'"+t_start+"' and publishTime<='"+t_end+"';");
+//            ResultSet rs2=stat2.executeQuery(q2);
+//            rs2.next();
+//            count=rs2.getInt(1);
+//            System.out.println(System.currentTimeMillis()+" have tweets:"+count);
+//            rs2.close();
+//            stat2.close();
+//            
+//            int countht=0;
+//            Statement stat3=conn.createStatement();
+//            String q3="select count(*) from tb_search where publishTime>'"+t_start+"' and publishTime<='"+t_end+"' and hashtag1<>'';";
+//            ResultSet rs3=stat3.executeQuery(q3);
+//            rs3.next();
+//            countht=rs3.getInt(1);
+//            System.out.println(System.currentTimeMillis()+" have tweets with ht:"+countht);
+//            rs3.close();
+//            stat3.close();
+//            
+//            /////////////////////get the initial dynamics of topics//////////////////
+//            for(int j=0;j<15;j++)
+//            {
+//                Statement stat_d=conn.createStatement();
+//                String q_d="select count(*) from tb_search where hashtag1='"+topics[j]+"' or hashtag2='"+topics[j]+"';";
+//                ResultSet rs_d=stat_d.executeQuery(q_d);
+//                rs_d.next();
+//                int dyn=rs_d.getInt(1);
+//                rs_d.close();
+//                stat_d.close();
+//                dynamics[j]=dyn;
+//                
+//            }
+//            //////////////////////////////////////////////////////////////////////////
+////            //get preratio of hashtag
+////            double prerate=(double)countht/count;
+////            Statement stat4=conn.createStatement();
+////            String q4="select count(*) from tb_search where publishTime>'"+t_start+"' and publishTime<='"+t_end+"' and hashtag1<>'';";
+////            stat4.execute(q4);
+////            stat4.close();
+//           
+//            
+//            int poscnt=0;
+//            int htcnt=0;
+//            while(poscnt<=count)
+//            {
+//                int limit=10000;
+//                if(poscnt+limit>count)
+//                {
+//                    limit=count-poscnt;
+//                }
+//                Statement stat4=conn.createStatement();
+//                String q4="select mbloginfoId,content from tb_search where hashtag1='' and hashtag2='' and publishTime>'"+t_start+"' and publishTime<='"+t_end+"';";
+//                ResultSet rs4=stat4.executeQuery(q4);
+//                while(rs4.next())
+//                {
+//                    //System.out.println(System.currentTimeMillis()+" process tweets have no tweets:"+rs4.getRow());
+//                    int id=rs4.getInt(1);
+//                    String content=rs4.getString(2);
+//                    //System.out.println("content:"+content);
+//                    //compart content with hashtags
+//                    if(!content.isEmpty())
+//                    {
+//                        for(int i=0;i<15;i++)
+//                        {
+//                            //System.out.println("topic:"+topics[i]);
+//                            if(content.contains(topics[i]))
+//                            {
+//                                //insert the ht inferred
+//                                Statement stat5=conn.createStatement();
+//                                String q5="update tb_search set hashtag2='"+topics[i]+"' where mbloginfoId='"+id+"';";
+//                                System.out.println(id+":"+topics[i]);
+//                                stat5.execute(q5);
+//                                stat5.close();
+//
+//                                htcnt++;
+//                                dynamics[i]++;
+//
+//                                break;
+//                            }
+//                        }
+//                    }
+//                }
+//                
+//                poscnt=poscnt+10000;
+//            }
+//            
+//            //insert stat of numbers
+//            Statement stat6=conn.createStatement();
+//            String q6="insert into tb_htratio(prenumber,postnumber,totalnumber,time)"
+//                    + "values('"+countht+"','"+htcnt+"','"+count+"','"+ts+"')";
+//            stat6.execute(q6);
+//            stat6.close();
+//            
+//            //insert dynamics
+//            for(int k=0;k<15;k++)
+//            {
+//                Statement stat8=conn.createStatement();
+//                String q8="insert into search_dynamics(hashtag,number,time) values"
+//                        + "('"+topics[k]+"','"+dynamics[k]+"','"+ts+"')";
+//                stat8.execute(q8);
+//                stat8.close();
+//            }
+            
+            
+//        }
+
+
+
+
+
+
+//        while(true)
+//        {
+//            ////////////////get time span///////////////
+//            Statement stat1=conn.createStatement();
+//            String q1="select processpos from tb_position where name='threedyn';";
+//            ResultSet rs1=stat1.executeQuery(q1);
+//            rs1.next();
+//            int pos=rs1.getInt(1);
+//            rs1.close();
+//            stat1.close();
+//            
+//            Statement stat2=conn.createStatement();
+//            String q2="select stime from tb_sample_time where id>='"+pos+"' limit 2;";
+//            ResultSet rs2=stat2.executeQuery(q2);
+//            rs2.next();
+//            Timestamp starttime=rs2.getTimestamp(1);
+//            rs2.next();
+//            Timestamp endtime=rs2.getTimestamp(1);
+//            rs2.close();
+//            stat2.close();
+//            //renew position
+//            Statement stat3=conn.createStatement();
+//            String q3="update tb_position set processpos='"+(pos+1)+"' where name='threedyn';";
+//            stat3.execute(q3);
+//            stat3.close();
+            
+            //get dynamics of sample data set from starttime to endtime
+//            Statement stat4=conn.createStatement();
+//            String q4="select hashtag,count(hashtag) from tb_sample_dyninfo where "
+//                    + "httime>'"+starttime+"' and httime<='"+endtime+"' group by hashtag having count(hashtag)>=5;";
+//            ResultSet rs4=stat4.executeQuery(q4);
+//            while(rs4.next())
+//            {
+//                String topic=rs4.getString(1);
+//                int cnt=rs4.getInt(2);
+//                
+//                //get user number
+//                Statement stat5=conn.createStatement();
+//                String q5="select count(distinct userId) from tb_sample_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs5=stat5.executeQuery(q5);
+//                rs5.next();
+//                int usercnt=rs5.getInt(1);
+//                rs5.close();
+//                stat5.close();
+//
+//
+//                //get rt number
+//                Statement stat6=conn.createStatement();
+//                String q6="select count(*) from tb_sample_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and rt=1;";
+//                ResultSet rs6=stat6.executeQuery(q6);
+//                rs6.next();
+//                int rtcnt=rs6.getInt(1);
+//                rs6.close();
+//                stat6.close();
+//
+//                //get mt number
+//                Statement stat7=conn.createStatement();
+//                String q7="select count(*) from tb_sample_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and mt<>0;";
+//                ResultSet rs7=stat7.executeQuery(q7);
+//                rs7.next();
+//                int mtcnt=rs7.getInt(1);
+//                rs7.close();
+//                stat7.close();
+//
+//                //get follow count
+//                int followcnt=0;
+//                Statement stat8=conn.createStatement();
+//                String q8="select followcount from tb_sample_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs8=stat8.executeQuery(q8);
+//                while(rs8.next())
+//                {
+//                    int fcnt=rs8.getInt(1);
+//                    followcnt=followcnt+fcnt;
+//                }
+//                
+//                rs8.close();
+//                stat8.close();
+//
+//                //get tweet count
+//                int tweetcnt=0;
+//                Statement stat9=conn.createStatement();
+//                String q9="select tweetcount from tb_sample_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs9=stat9.executeQuery(q9);
+//                while(rs9.next())
+//                {
+//                    int tcnt=rs9.getInt(1);
+//                    tweetcnt=tweetcnt+tcnt;
+//                }
+//                
+//                rs8.close();
+//                stat8.close();
+//                
+//                
+//                //insert topic
+//                Statement stat_in=conn.createStatement();
+//                String q_in="insert into tb_sample_topicdyn(hashtag,frequency,timeinfo,usernumber,rtnumber,mtnumber,"
+//                        + "followcount,tweetcount)"
+//                        + " values ('"+topic+"','"+cnt+"','"+starttime+"','"+usercnt+"','"+rtcnt+"','"+mtcnt+"',"
+//                        + "'"+followcnt+"','"+tweetcnt+"')";
+//                stat_in.execute(q_in);
+//                stat_in.close();
+//            }
+//            rs4.close();
+//            stat4.close();
+            
+            //get dynamics of search data set from starttime to endtime
+            //if(starttime.before(Timestamp("2013-06-11")))\
+           
+            
+            
+//            Statement stat=conn.createStatement();
+//            String q="select hashtag,count(hashtag) from tb_search_dyninfo where "
+//                    + "httime>'"+starttime+"' and httime<='"+endtime+"' group by hashtag having count(hashtag)>=5;";
+//            ResultSet rs=stat.executeQuery(q);
+//            while(rs.next())
+//            {
+//                String topic=rs.getString(1);
+//                int cnt=rs.getInt(2);
+//                
+//                //get user number
+//                Statement stat5=conn.createStatement();
+//                String q5="select count(distinct userId) from tb_search_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs5=stat5.executeQuery(q5);
+//                rs5.next();
+//                int usercnt=rs5.getInt(1);
+//                rs5.close();
+//                stat5.close();
+//
+//
+//                //get rt number
+//                Statement stat6=conn.createStatement();
+//                String q6="select count(*) from tb_search_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and rt=1;";
+//                ResultSet rs6=stat6.executeQuery(q6);
+//                rs6.next();
+//                int rtcnt=rs6.getInt(1);
+//                rs6.close();
+//                stat6.close();
+//
+//                //get mt number
+//                Statement stat7=conn.createStatement();
+//                String q7="select count(*) from tb_search_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"' and mt<>0;";
+//                ResultSet rs7=stat7.executeQuery(q7);
+//                rs7.next();
+//                int mtcnt=rs7.getInt(1);
+//                rs7.close();
+//                stat7.close();
+//
+//                //get follow count
+//                int followcnt=0;
+//                Statement stat8=conn.createStatement();
+//                String q8="select followcount from tb_search_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs8=stat8.executeQuery(q8);
+//                while(rs8.next())
+//                {
+//                    int fcnt=rs8.getInt(1);
+//                    followcnt=followcnt+fcnt;
+//                }
+//                
+//                rs8.close();
+//                stat8.close();
+//
+//                //get tweet count
+//                int tweetcnt=0;
+//                Statement stat9=conn.createStatement();
+//                String q9="select tweetcount from tb_search_dyninfo where "
+//                        + "httime>'"+starttime+"' and httime<='"+endtime+"' and hashtag='"+topic+"';";
+//                ResultSet rs9=stat9.executeQuery(q9);
+//                while(rs9.next())
+//                {
+//                    int tcnt=rs9.getInt(1);
+//                    tweetcnt=tweetcnt+tcnt;
+//                }
+//                
+//                rs8.close();
+//                stat8.close();
+//                
+//                
+//                //insert topic
+//                Statement stat_in=conn.createStatement();
+//                String q_in="insert into tb_search_topicdyn(hashtag,frequency,timeinfo,usernumber,rtnumber,mtnumber,"
+//                        + "followcount,tweetcount)"
+//                        + " values ('"+topic+"','"+cnt+"','"+starttime+"','"+usercnt+"','"+rtcnt+"','"+mtcnt+"',"
+//                        + "'"+followcnt+"','"+tweetcnt+"')";
+//                stat_in.execute(q_in);
+//                stat_in.close();
+//            }
+//            
+//
+//            
+//            rs.close();
+//            stat.close();
+            
+            ///////////////////////get sample search and common dynamics////////////////////
+            //for topic oomf
+            
+//            //sample
+//            Statement stat4=conn.createStatement();
+//            String q4="select count(microblogId) from tb_sample where "
+//                        + "publishTime>'"+starttime+"' and publishTime<='"+endtime+"' and (hashtag1='oomf' or hashtag2='oomf');";
+//            ResultSet rs4=stat4.executeQuery(q4);
+//            rs4.next();
+//            int samplecnt=rs4.getInt(1);
+//            rs4.close();
+//            stat4.close();
+//            
+//            //search
+//            Statement stat5=conn.createStatement();
+//            String q5="select count(microblogId) from tb_search where "
+//                        + "publishTime>'"+starttime+"' and publishTime<='"+endtime+"' and (hashtag1='oomf' or hashtag2='oomf');";
+//            ResultSet rs5=stat5.executeQuery(q5);
+//            rs5.next();
+//            int searchcnt=rs5.getInt(1);
+//            rs5.close();
+//            stat5.close();
+//            
+//            //common
+//            Statement stat6=conn.createStatement();
+//            String q6="select count(a.microblogId) from tb_sample as a, tb_search as b where a.microblogId=b.microblogId and "
+//                        + "a.publishTime>'"+starttime+"' and a.publishTime<='"+endtime+"' and (a.hashtag1='oomf' or a.hashtag2='oomf');";
+//            ResultSet rs6=stat6.executeQuery(q6);
+//            rs6.next();
+//            int commoncnt=rs6.getInt(1);
+//            rs6.close();
+//            stat6.close();
+//            
+//            String s="";
+//            s=s.concat(samplecnt+","+searchcnt+","+commoncnt+","+starttime+"\n");
+//            String path="./dynamics.txt";
+//            File_Write(path,s);
